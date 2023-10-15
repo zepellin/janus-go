@@ -1,34 +1,83 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-func truncateText(s string, max int) string {
-	return s[:max]
-}
+var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
+// Creates GCP metadata client
 func gcpMetadataClient() *metadata.Client {
-	c := metadata.NewClient(&http.Client{Timeout: 1 * time.Second, Transport: userAgentTransport{
-		userAgent: "my-user-agent",
-		base:      http.DefaultTransport,
-	}})
-
+	c := metadata.NewClient(&http.Client{Timeout: 1 * time.Second})
 	return c
 }
 
-type awsCredentials struct {
+// Constucts AWs session identifier from GCP metadata infrmation.
+// This implementation uses concentration of  GCP project ID and machine hostname
+func createSessionIdentifier(c *metadata.Client) (string, error) {
+	projectId, err := c.ProjectID()
+	if err != nil {
+		logger.Error("Couldn't fetch ProjectId from GCP metadata server")
+		return "", err
+	}
+
+	hostname, err := c.Hostname()
+	if err != nil {
+		logger.Error("Couldn't fetch Hostname from GCP metadata server")
+		return "", err
+	}
+
+	return (fmt.Sprintf("%s-%s", projectId, hostname)[:32]), nil
+}
+
+// Retrieves GCE identity token (JWT) and retuens [customIdentityTokenRetriever] instance
+// containing the token. This is to be then used in [stscreds.NewWebIdentityRoleProvider]
+// function.
+func gcpRetrieveGCEVMToken(ctx context.Context) (customIdentityTokenRetriever, error) {
+	url := "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?format=full&audience=gcp"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("http.NewRequest: %w", err)
+	}
+	req.Header.Set("Metadata-Flavor", "Google")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("client.Do: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("status code %d", resp.StatusCode)
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("io.ReadAll: %w", err)
+	}
+	gcpMetadataToken := customIdentityTokenRetriever{token: b}
+	return gcpMetadataToken, nil
+}
+
+type customIdentityTokenRetriever struct {
+	token []byte
+}
+
+func (obj customIdentityTokenRetriever) GetIdentityToken() ([]byte, error) {
+	return obj.token, nil
+}
+
+type awsTempCredentials struct {
 	Version         int       `json:"Version"`
 	AccessKeyId     string    `json:"AccessKeyId"`
 	SecretAccessKey string    `json:"SecretAccessKey"`
@@ -37,93 +86,62 @@ type awsCredentials struct {
 }
 
 // Custom stringer for awsCredentials stuct
-func (c awsCredentials) String() string {
+func (c awsTempCredentials) String() string {
 	return fmt.Sprintf("{\"Version\": %d, \"AccessKeyId\": \"%s\", \"SecretAccessKey\": \"%s\", \"SessionToken\": \"%s\", \"Expiration\": \"%s\"}", 1, c.AccessKeyId, c.SecretAccessKey, c.SessionToken, c.Expiration.Format("2006-01-02T15:04:05-07:00"))
 }
 
-// This example demonstrates how to use your own transport when using this package.
 func main() {
-	c := gcpMetadataClient()
+	awsAssumeRoleArn := flag.String("rolearn", "", "AWS role ARN to assume (required)")
+	stsRegion := flag.String("stsregion", "us-east-1", "AWS STS region to which requests are made (optional)")
 
-	projectId, err := c.ProjectID()
+	flag.Parse()
+	if *awsAssumeRoleArn == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+
+	sessionIdentifier, err := createSessionIdentifier(gcpMetadataClient())
 	if err != nil {
-		log.Fatal("Couldn't connect to metadata server")
+		logger.Error("Failed to create session identifier from GCP metadata, %s" + err.Error())
+		os.Exit(1)
 	}
 
-	hostname, err := c.Hostname()
+	assumeRoleCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*stsRegion))
 	if err != nil {
-		log.Fatal("Couldn't connect to metadata server")
+		logger.Error("failed to load default AWS config, %s" + err.Error())
+		os.Exit(1)
 	}
 
-	client := &http.Client{}
-	req, _ := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?format=standard&audience=gcp", nil)
-	req.Header.Set("Metadata-Flavor", "Google")
-	response, _ := client.Do(req)
-
-	body, error := ioutil.ReadAll(response.Body)
-	if error != nil {
-		fmt.Println(error)
-	}
-	response.Body.Close()
-
+	gcpMetadataToken, err := gcpRetrieveGCEVMToken(ctx)
 	if err != nil {
-		log.Fatal("Couldn't connect to metadata server")
+		logger.Error("Failed to get JWT token from GCP metadata, %s" + err.Error())
+		os.Exit(1)
 	}
 
-	sessionIdentifier := fmt.Sprintf("%s-%s", projectId, hostname)[:64]
+	stsAssumeClient := sts.NewFromConfig(assumeRoleCfg)
+	awsCredsCache := aws.NewCredentialsCache(stscreds.NewWebIdentityRoleProvider(
+		stsAssumeClient,
+		*awsAssumeRoleArn,
+		gcpMetadataToken,
+		func(o *stscreds.WebIdentityRoleOptions) {
+			o.RoleSessionName = sessionIdentifier
+		}),
+	)
 
-	// Here we start with AWS stuff
-	svc := sts.New(session.New())
-
-	input := &sts.AssumeRoleWithWebIdentityInput{
-		RoleArn:          aws.String(os.Args[1]),
-		RoleSessionName:  aws.String(sessionIdentifier),
-		WebIdentityToken: aws.String(string(body)),
-		DurationSeconds:  aws.Int64(3600),
-	}
-	result, err := svc.AssumeRoleWithWebIdentity(input)
-
+	awsCredentials, err := awsCredsCache.Retrieve(ctx)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case sts.ErrCodeMalformedPolicyDocumentException:
-				fmt.Println(sts.ErrCodeMalformedPolicyDocumentException, aerr.Error())
-			case sts.ErrCodePackedPolicyTooLargeException:
-				fmt.Println(sts.ErrCodePackedPolicyTooLargeException, aerr.Error())
-			case sts.ErrCodeIDPRejectedClaimException:
-				fmt.Println(sts.ErrCodeIDPRejectedClaimException, aerr.Error())
-			case sts.ErrCodeIDPCommunicationErrorException:
-				fmt.Println(sts.ErrCodeIDPCommunicationErrorException, aerr.Error())
-			case sts.ErrCodeInvalidIdentityTokenException:
-				fmt.Println(sts.ErrCodeInvalidIdentityTokenException, aerr.Error())
-			case sts.ErrCodeExpiredTokenException:
-				fmt.Println(sts.ErrCodeExpiredTokenException, aerr.Error())
-			case sts.ErrCodeRegionDisabledException:
-				fmt.Println(sts.ErrCodeRegionDisabledException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
-		return
+		logger.Error("Couldn't retrieve AWS credentials %s", err)
+		os.Exit(1)
 	}
 
-	credentials := awsCredentials{Version: 1, AccessKeyId: *result.Credentials.AccessKeyId, SecretAccessKey: *result.Credentials.SecretAccessKey, SessionToken: *result.Credentials.SessionToken, Expiration: *result.Credentials.Expiration}
+	credentials := awsTempCredentials{
+		Version:         1,
+		AccessKeyId:     awsCredentials.AccessKeyID,
+		SecretAccessKey: awsCredentials.SecretAccessKey,
+		SessionToken:    awsCredentials.SessionToken,
+		Expiration:      awsCredentials.Expires}
 
 	fmt.Printf("%+v\n", credentials)
-}
-
-// userAgentTransport sets the User-Agent header before calling base.
-type userAgentTransport struct {
-	userAgent string
-	base      http.RoundTripper
-}
-
-// RoundTrip implements the http.RoundTripper interface.
-func (t userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("User-Agent", t.userAgent)
-	return t.base.RoundTrip(req)
 }
