@@ -28,7 +28,7 @@ jobs:
       run: go build -o janus-go -v ./...
 
     - name: Run directly
-      run: janus-go -rolearn arn://this-is-a-test -stsregion us-east-1
+      run: ./janus-go -rolearn arn://this-is-a-test -stsregion us-east-1
 
     - name: Run with aws-cli
       run: aws
