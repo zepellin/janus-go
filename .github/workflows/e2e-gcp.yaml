@@ -31,7 +31,7 @@ jobs:
       shell: bash
       env:
         AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
-      run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1
+      run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 > /dev/null
 
     - name: Run with aws-cli
-      run: aws
+      run: aws --profile janus-go-e2e-gcp s3 ls
