@@ -28,7 +28,10 @@ jobs:
       run: go build -o janus-go -v ./...
 
     - name: Run directly
-      run: ./janus-go -rolearn arn://this-is-a-test -stsregion us-east-1
+      shell: bash
+      env:
+        AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+      run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1
 
     - name: Run with aws-cli
       run: aws
