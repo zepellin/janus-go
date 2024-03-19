@@ -1,4 +1,4 @@
-name: PR e2e test on GCP
+name: Build-Test
 
 on:
   push:
@@ -9,13 +9,13 @@ on:
   pull_request:
     branches: [ "main" ]
     paths-ignore:
-      # - '.github/**'
+      - '.github/**'
       - '**.md'
 
 jobs:
 
-  e2e:
-    runs-on: janus-go-e2e
+  build:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
@@ -25,10 +25,7 @@ jobs:
         go-version: '1.21'
 
     - name: Build
-      run: go build -o janus-go -v ./...
+      run: go build -v ./...
 
-    - name: Run directly
-      run: janus-go -rolearn arn://this-is-a-test -stsregion us-east-1
-
-    - name: Run with aws-cli
-      run: aws
+    - name: Test
+      run: go test -v ./...
