@@ -1,0 +1,49 @@
+name: PR e2e test on GCP
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '.github/**'
+      - '**.md'
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      # - '.github/**'
+      - '**.md'
+
+jobs:
+
+  e2e:
+    runs-on: janus-go-e2e
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Build
+      run: go build -o janus-go -v ./...
+
+    - name: Run directly
+      shell: bash
+      env:
+        AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+      run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN > /dev/null
+
+    - name: Run directly with sts region
+      shell: bash
+      env:
+        AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+      run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 > /dev/null
+
+    - name: Run directly with sts region and double dash params
+      shell: bash
+      env:
+        AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+      run: ./janus-go --rolearn $AWS_IAM_ROLE_ARN --stsregion us-east-1 > /dev/null
+
+    - name: Run with aws-cli
+      run: aws --profile janus-go-e2e-gcp s3 ls
