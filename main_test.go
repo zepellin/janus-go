@@ -1,10 +1,157 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
+
+	mds "github.com/salrashid123/gce_metadata_server"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
+
+var (
+	gceInstanceHostname = "janus-go-instance-hostname"
+	gcpProjectID        = "janus-go"
+	credsTokenSource    = oauth2.StaticTokenSource(
+		&oauth2.Token{
+			AccessToken:  "mock_token",
+			RefreshToken: "mock_refresh",
+		},
+	)
+)
+
+// MockGCPMetadataServer creates and returns a mock GCP metadata server.
+// It uses default credentials for the metadata server and binds to the
+// local interface on port 8080. The server is configured with the provided
+// GCP project ID and GCE instance hostname.
+func MockGCPMetadataServer(tokenSource *oauth2.TokenSource) *mds.MetadataServer {
+	ctx := context.Background()
+
+	creds := &google.Credentials{}
+
+	if tokenSource == nil {
+		// Use default credentials for the metadata server if none are provided to the function
+		creds, _ = google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
+	} else {
+		creds = &google.Credentials{
+			ProjectID:   gcpProjectID,
+			TokenSource: *tokenSource,
+		}
+	}
+
+	serverConfig := &mds.ServerConfig{
+		BindInterface: "127.0.0.1",
+		Port:          ":8080",
+	}
+
+	claims := &mds.Claims{
+		ComputeMetadata: mds.ComputeMetadata{
+			V1: mds.V1{
+				Project: mds.Project{
+					ProjectID: gcpProjectID,
+				},
+				Instance: mds.Instance{
+					Hostname: gceInstanceHostname,
+				},
+			},
+		},
+	}
+	f, err := mds.NewMetadataServer(ctx, serverConfig, creds, claims)
+	if err != nil {
+		return nil
+	}
+	return f
+}
+
+// TestCreateSessionIdentifier is a unit test function that tests the createSessionIdentifier function.
+// It creates a mock metadata server, sets the local metadata server, starts the mock metadata server,
+// and then calls the createSessionIdentifier function to generate a session ID. It compares the generated
+// session ID with the expected session ID and reports any errors encountered during the test.
+func TestCreateSessionIdentifier(t *testing.T) {
+	// Create a mock metadata server
+	f := MockGCPMetadataServer(&credsTokenSource)
+
+	// Use local metadata server
+	t.Setenv("GCE_METADATA_HOST", "127.0.0.1:8080")
+
+	// Start a mock metadata server
+	err := f.Start()
+	if err != nil {
+		t.Errorf("Failed to start metadata server: %v", err)
+	}
+	defer f.Shutdown()
+
+	sessionID, err := createSessionIdentifier(gcpMetadataClient())
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	expectedSessionID := fmt.Sprintf("%s-%s", gcpProjectID, gceInstanceHostname)[:32]
+	if sessionID != expectedSessionID {
+		t.Errorf("Unexpected session ID: got %s, want %s", sessionID, expectedSessionID)
+	}
+}
+
+// TestGCEMatadataDataHostname is a unit test function that tests the functionality of fetching the hostname from the metadata server.
+// It starts a mock metadata server, sets the local metadata server, and verifies the metadata client by fetching the hostname.
+// It compares the retrieved hostname with the expected value and reports any errors encountered during the test.
+func TestGCEMatadataDataHostname(t *testing.T) {
+	// Start a mock metadata server
+	f := MockGCPMetadataServer(&credsTokenSource)
+
+	// Use local metadata server
+	t.Setenv("GCE_METADATA_HOST", "127.0.0.1:8080")
+
+	err := f.Start()
+	if err != nil {
+		t.Errorf("Failed to start metadata server: %v", err)
+	}
+	defer f.Shutdown()
+
+	client := gcpMetadataClient()
+	if client == nil {
+		t.Errorf("Expected non-nil metadata client, got nil")
+	}
+
+	// Test the metadata client by fetching the hostname
+	metadataHostname, err := client.Hostname()
+	if err != nil {
+		t.Errorf("Failed to fetch hostname from metadata server: %v", err)
+	}
+
+	assert.Equal(t, gceInstanceHostname, metadataHostname, "Retrieved hostname does not match expected value")
+}
+
+func TestGCEMatadataDataProjectID(t *testing.T) {
+	// Start a mock metadata server
+	f := MockGCPMetadataServer(&credsTokenSource)
+
+	// Use local metadata server
+	t.Setenv("GCE_METADATA_HOST", "127.0.0.1:8080")
+
+	err := f.Start()
+	if err != nil {
+		t.Errorf("Failed to start metadata server: %v", err)
+	}
+	defer f.Shutdown()
+
+	client := gcpMetadataClient()
+	if client == nil {
+		t.Errorf("Expected non-nil metadata client, got nil")
+	}
+
+	// Test the metadata client by fetching the project ID
+	metadataProjectID, err := client.ProjectID()
+	if err != nil {
+		t.Errorf("Failed to fetch hostname from metadata server: %v", err)
+	}
+
+	assert.Equal(t, gcpProjectID, metadataProjectID, "Retrieved project ID does not match expected value")
+}
 
 func TestAWSTempCredentials(t *testing.T) {
 	// Create a sample awsTempCredentials instance
@@ -30,19 +177,9 @@ func TestAWSTempCredentials(t *testing.T) {
 	}
 
 	// Compare the original and parsed credentials
-	if credentials.Version != parsedCredentials.Version {
-		t.Errorf("Version mismatch: expected %d, got %d", credentials.Version, parsedCredentials.Version)
-	}
-	if credentials.AccessKeyId != parsedCredentials.AccessKeyId {
-		t.Errorf("AccessKeyId mismatch: expected %s, got %s", credentials.AccessKeyId, parsedCredentials.AccessKeyId)
-	}
-	if credentials.SecretAccessKey != parsedCredentials.SecretAccessKey {
-		t.Errorf("SecretAccessKey mismatch: expected %s, got %s", credentials.SecretAccessKey, parsedCredentials.SecretAccessKey)
-	}
-	if credentials.SessionToken != parsedCredentials.SessionToken {
-		t.Errorf("SessionToken mismatch: expected %s, got %s", credentials.SessionToken, parsedCredentials.SessionToken)
-	}
-	if !credentials.Expiration.Equal(parsedCredentials.Expiration) {
-		t.Errorf("Expiration mismatch: expected %v, got %v", credentials.Expiration, parsedCredentials.Expiration)
-	}
+	assert.Equal(t, credentials.Version, parsedCredentials.Version, "Version mismatch")
+	assert.Equal(t, credentials.AccessKeyId, parsedCredentials.AccessKeyId, "AccessKeyId mismatch")
+	assert.Equal(t, credentials.SecretAccessKey, parsedCredentials.SecretAccessKey, "SecretAccessKey mismatch")
+	assert.Equal(t, credentials.SessionToken, parsedCredentials.SessionToken, "SessionToken mismatch")
+	assert.True(t, credentials.Expiration.Equal(parsedCredentials.Expiration), "Expiration mismatch")
 }

@@ -4,20 +4,27 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
+	"google.golang.org/api/option"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+var (
+	logger             = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	GCP_TOKEN_AUDIENCE = "gcp"
+)
 
 // Creates GCP metadata client
 func gcpMetadataClient() *metadata.Client {
@@ -43,38 +50,33 @@ func createSessionIdentifier(c *metadata.Client) (string, error) {
 	return (fmt.Sprintf("%s-%s", projectId, hostname)[:32]), nil
 }
 
-// Retrieves GCE identity token (JWT) and retuens [customIdentityTokenRetriever] instance
-// containing the token. This is to be then used in [stscreds.NewWebIdentityRoleProvider]
-// function.
-func gcpRetrieveGCEVMToken(ctx context.Context) (customIdentityTokenRetriever, error) {
-	url := "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?format=full&audience=gcp"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+// gcpTokenSource returns an OAuth2 token source for authenticating with GCP GKE.
+// It fetches the GCP default credentials from the environment and uses them to obtain an identity token.
+func gcpTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+	credentials, err := google.FindDefaultCredentials(ctx)
 	if err != nil {
-		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("http.NewRequest: %w", err)
+		logger.Debug("Couldn't fetch GCP default credentials from environment")
+		return nil, err
 	}
-	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := http.DefaultClient.Do(req)
+
+	ts, err := idtoken.NewTokenSource(ctx, GCP_TOKEN_AUDIENCE, option.WithCredentials(credentials))
 	if err != nil {
-		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("client.Do: %w", err)
+		logger.Debug("Couldn't fetch GCP identity token")
+		return nil, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("status code %d", resp.StatusCode)
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return customIdentityTokenRetriever{token: nil}, fmt.Errorf("io.ReadAll: %w", err)
-	}
-	gcpMetadataToken := customIdentityTokenRetriever{token: b}
-	return gcpMetadataToken, nil
+	return ts, nil
 }
 
 type customIdentityTokenRetriever struct {
-	token []byte
+	tokenSource oauth2.TokenSource
 }
 
 func (obj customIdentityTokenRetriever) GetIdentityToken() ([]byte, error) {
-	return obj.token, nil
+	token, err := obj.tokenSource.Token()
+	if err != nil {
+		return nil, err
+	}
+	return []byte(token.AccessToken), nil
 }
 
 type awsTempCredentials struct {
@@ -102,7 +104,13 @@ func main() {
 
 	ctx := context.Background()
 
-	sessionIdentifier, err := createSessionIdentifier(gcpMetadataClient())
+	gcpMetadataClient := gcpMetadataClient()
+	if gcpMetadataClient == nil {
+		logger.Error("Expected non-nil metadata client, got nil")
+		os.Exit(1)
+	}
+
+	sessionIdentifier, err := createSessionIdentifier(gcpMetadataClient)
 	if err != nil {
 		logger.Error("Failed to create session identifier from GCP metadata, %s" + err.Error())
 		os.Exit(1)
@@ -114,11 +122,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	gcpMetadataToken, err := gcpRetrieveGCEVMToken(ctx)
+	gcpMetadataTokenSource, err := gcpTokenSource(ctx)
 	if err != nil {
 		logger.Error("Failed to get JWT token from GCP metadata, %s" + err.Error())
 		os.Exit(1)
 	}
+
+	gcpMetadataToken := customIdentityTokenRetriever{tokenSource: gcpMetadataTokenSource}
 
 	stsAssumeClient := sts.NewFromConfig(assumeRoleCfg)
 	awsCredsCache := aws.NewCredentialsCache(stscreds.NewWebIdentityRoleProvider(
