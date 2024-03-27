@@ -1,4 +1,4 @@
-name: PR e2e test on GCP
+name: Test e2e on GCP
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [ "main" ]
     paths-ignore:
-      # - '.github/**'
+      - '.github/**'
       - '**.md'
 
 jobs:

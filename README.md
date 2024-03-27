@@ -1,5 +1,5 @@
 # Janus-go
-
+![E2E GCP](https://github.com/zepellin/janus-go/actions/workflows/e2e-gcp.yaml/badge.svg)
 ## Description
 Janus-go is a AWS CLI external source authentication program for use with Google Cloud GKE workload identity or GCE VM identity. It is designed to allow authenticating AWS IAM role from Google Cloud environments (such as GKE cluster or GCE VM instance) without the need of generating long term AWS credentials.
 
