@@ -1,4 +1,4 @@
-name: "Security Scan"
+name: "GoSec"
 
 # Run workflow each time code is pushed to your repository and on a schedule.
 # The scheduled workflow runs every at 00:00 on Sunday UTC time.
@@ -6,7 +6,8 @@ on:
   push:
 
 jobs:
-  tests:
+  analyze:
+    name: GoSec Analyze (go)
     runs-on: ubuntu-latest
     permissions:
       security-events: write # Required for the security events
@@ -25,3 +26,4 @@ jobs:
         with:
           # Path to SARIF file relative to the root of the repository
           sarif_file: results.sarif
+          category: gosec
