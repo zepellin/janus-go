@@ -142,7 +142,7 @@ func main() {
 
 	awsCredentials, err := awsCredsCache.Retrieve(ctx)
 	if err != nil {
-		logger.Error("Couldn't retrieve AWS credentials %s", err)
+		logger.Error(fmt.Sprintf("Couldn't retrieve AWS credentials %s", err))
 		os.Exit(1)
 	}
 
