@@ -35,13 +35,14 @@ func gcpMetadataClient() *metadata.Client {
 // Constucts AWs session identifier from GCP metadata infrmation.
 // This implementation uses concentration of  GCP project ID and machine hostname
 func createSessionIdentifier(c *metadata.Client) (string, error) {
-	projectId, err := c.ProjectID()
+	ctx := context.Background()
+	projectId, err := c.ProjectIDWithContext(ctx)
 	if err != nil {
 		logger.Error("Couldn't fetch ProjectId from GCP metadata server")
 		return "", err
 	}
 
-	hostname, err := c.Hostname()
+	hostname, err := c.HostnameWithContext(ctx)
 	if err != nil {
 		logger.Error("Couldn't fetch Hostname from GCP metadata server")
 		return "", err
