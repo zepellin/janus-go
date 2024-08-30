@@ -5,8 +5,8 @@ go 1.23.0
 require (
 	cloud.google.com/go/compute/metadata v0.5.0
 	github.com/aws/aws-sdk-go-v2 v1.30.4
-	github.com/aws/aws-sdk-go-v2/config v1.27.30
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.29
+	github.com/aws/aws-sdk-go-v2/config v1.27.31
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.30
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.5
 	golang.org/x/oauth2 v0.22.0
 	google.golang.org/api v0.194.0
