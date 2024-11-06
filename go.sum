@@ -122,6 +122,8 @@ github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjR
 github.com/rogpeppe/go-internal v1.10.0/go.mod h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog=
 github.com/salrashid123/gce_metadata_server v0.0.0-20240905145253-49d09cbe9286 h1:xyfKsuHJZW8F+6SzwtcrQfX7kTF1WlYos2NsST0zh9Y=
 github.com/salrashid123/gce_metadata_server v0.0.0-20240905145253-49d09cbe9286/go.mod h1:srCwGIcCnaUrCTVM2s6JqtJW+CKJQI/TB3cW03Uq6+o=
+github.com/salrashid123/gce_metadata_server v0.0.0-20241105152449-619e88641998 h1:IipQrIxg6gXTuTStxNK/8t3lE0ZTi767YZQkU4pSikg=
+github.com/salrashid123/gce_metadata_server v0.0.0-20241105152449-619e88641998/go.mod h1:srCwGIcCnaUrCTVM2s6JqtJW+CKJQI/TB3cW03Uq6+o=
 github.com/salrashid123/golang-jwt-tpm v1.8.1 h1:wLCVGh3NE6nXkbtJCC4FqDMd1T4O9blkqhLrki/dEM0=
 github.com/salrashid123/golang-jwt-tpm v1.8.1/go.mod h1:j09G3lbE4f1xA8b/iJylp+vjM9zjbXU56+OS70eifTg=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
