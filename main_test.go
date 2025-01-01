@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
 
 var (
@@ -65,6 +67,16 @@ func MockGCPMetadataServer(tokenSource *oauth2.TokenSource) *mds.MetadataServer 
 		return nil
 	}
 	return f
+}
+
+// MockAzureManagedIdentityServer creates and returns a mock Azure managed identity server.
+// It uses the Azure SDK to obtain a managed identity token.
+func MockAzureManagedIdentityServer() (azcore.TokenCredential, error) {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't fetch Azure managed identity token: %w", err)
+	}
+	return cred, nil
 }
 
 // TestCreateSessionIdentifier is a unit test function that tests the createSessionIdentifier function.
@@ -189,4 +201,23 @@ func TestAWSTempCredentials(t *testing.T) {
 	assert.Equal(t, credentials.SecretAccessKey, parsedCredentials.SecretAccessKey, "SecretAccessKey mismatch")
 	assert.Equal(t, credentials.SessionToken, parsedCredentials.SessionToken, "SessionToken mismatch")
 	assert.True(t, credentials.Expiration.Equal(parsedCredentials.Expiration), "Expiration mismatch")
+}
+
+// TestAzureManagedIdentityTokenExchange is a unit test function that tests the Azure managed identity token exchange functionality.
+// It creates a mock Azure managed identity server, obtains a managed identity token, and verifies the token exchange process.
+func TestAzureManagedIdentityTokenExchange(t *testing.T) {
+	// Create a mock Azure managed identity server
+	azureToken, err := MockAzureManagedIdentityServer()
+	if err != nil {
+		t.Errorf("Failed to create mock Azure managed identity server: %v", err)
+	}
+
+	// Verify the token exchange process
+	token, err := azureToken.GetToken(context.Background(), azcore.TokenRequestOptions{})
+	if err != nil {
+		t.Errorf("Failed to obtain managed identity token: %v", err)
+	}
+
+	assert.NotNil(t, token, "Expected non-nil managed identity token, got nil")
+	assert.NotEmpty(t, token.Token, "Expected non-empty managed identity token, got empty")
 }

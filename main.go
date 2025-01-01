@@ -19,6 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 )
 
 const (
@@ -65,6 +67,16 @@ func gcpTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	return ts, nil
 }
 
+// azureTokenSource returns an OAuth2 token source for authenticating with Azure managed identity.
+// It uses the Azure SDK to obtain a managed identity token.
+func azureTokenSource(ctx context.Context) (azcore.TokenCredential, error) {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't fetch Azure managed identity token: %w", err)
+	}
+	return cred, nil
+}
+
 type customIdentityTokenRetriever struct {
 	tokenSource oauth2.TokenSource
 }
@@ -93,6 +105,7 @@ func (c awsTempCredentials) String() string {
 func main() {
 	awsAssumeRoleArn := flag.String("rolearn", "", "AWS role ARN to assume (required)")
 	stsRegion := flag.String("stsregion", stsRegionDefault, "AWS STS region to which requests are made (optional)")
+	azureManagedIdentity := flag.Bool("azure", false, "Use Azure managed identity for token exchange (optional)")
 
 	flag.Parse()
 	if *awsAssumeRoleArn == "" {
@@ -120,13 +133,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	gcpMetadataTokenSource, err := gcpTokenSource(ctx)
-	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get JWT token from GCP metadata: %v", err))
-		os.Exit(1)
+	var tokenSource oauth2.TokenSource
+	if *azureManagedIdentity {
+		azureToken, err := azureTokenSource(ctx)
+		if err != nil {
+			logger.Error(fmt.Sprintf("failed to get token from Azure managed identity: %v", err))
+			os.Exit(1)
+		}
+		tokenSource = azureToken
+	} else {
+		gcpMetadataTokenSource, err := gcpTokenSource(ctx)
+		if err != nil {
+			logger.Error(fmt.Sprintf("failed to get JWT token from GCP metadata: %v", err))
+			os.Exit(1)
+		}
+		tokenSource = gcpMetadataTokenSource
 	}
 
-	gcpMetadataToken := customIdentityTokenRetriever{tokenSource: gcpMetadataTokenSource}
+	gcpMetadataToken := customIdentityTokenRetriever{tokenSource: tokenSource}
 
 	stsAssumeClient := sts.NewFromConfig(assumeRoleCfg)
 	awsCredsCache := aws.NewCredentialsCache(stscreds.NewWebIdentityRoleProvider(

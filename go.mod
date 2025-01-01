@@ -8,6 +8,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.28.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.48
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v0.15.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v0.25.0
 	golang.org/x/oauth2 v0.24.0
 	google.golang.org/api v0.214.0
 )

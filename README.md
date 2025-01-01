@@ -1,13 +1,13 @@
 # Janus-go
 ![E2E GCP](https://github.com/zepellin/janus-go/actions/workflows/e2e-gcp.yaml/badge.svg)
 ## Description
-Janus-go is a AWS CLI external source authentication program for use with Google Cloud GKE workload identity or GCE VM identity. It is designed to allow authenticating AWS IAM role from Google Cloud environments (such as GKE cluster or GCE VM instance) without the need of generating long term AWS credentials.
+Janus-go is a AWS CLI external source authentication program for use with Google Cloud GKE workload identity, GCE VM identity, or Azure managed identity. It is designed to allow authenticating AWS IAM role from Google Cloud environments (such as GKE cluster or GCE VM instance) or Azure environments without the need of generating long term AWS credentials.
 
 This project was inspired by [Janus](https://github.com/doitintl/janus), a python implementation of the same authentication flow. This project was written in go for easier installation and usage of the program where a single binary is implementation is better suited (such as inside of existing container running on kubernetes).
 
 ## Prerequisites
-1. The environment in which the program is running has to be able to provide Google Cloud Identity token from Google Cloud metadata server. This can be achieved either by running on GCE VM instance or as a GKE workload with workload identity enabled
-2. An AWS IAM role is created with a [trust policy specifying the Google Cloud IAM identity](https://aws.amazon.com/blogs/security/access-aws-using-a-google-cloud-platform-native-workload-identity/) used by VM instance or GKE workload identity from step 1. 
+1. The environment in which the program is running has to be able to provide Google Cloud Identity token from Google Cloud metadata server or Azure managed identity token. This can be achieved either by running on GCE VM instance, as a GKE workload with workload identity enabled, or in an Azure environment with managed identity enabled.
+2. An AWS IAM role is created with a [trust policy specifying the Google Cloud IAM identity](https://aws.amazon.com/blogs/security/access-aws-using-a-google-cloud-platform-native-workload-identity/) used by VM instance or GKE workload identity from step 1, or the Azure managed identity.
 ## Installation
 ### Locally
 Download appropriate release for your OS and achitecture from the project's release page.
@@ -58,6 +58,14 @@ AWS clients such as AWS CLI or [AWS Terraform provider](https://registry.terrafo
 ```
 aws --profile my-aws-account ec2 describe-instances
 ```
+
+To use Azure managed identity for token exchange, add the `-azure` flag:
+
+```
+[profile my-aws-account]
+credential_process = /usr/local/bin/janus-go -rolearn arn:aws:iam::123456789012:role/my-trusted-role -azure
+```
+
 ## Contributing
 To contribute to Janus-go, follow these steps:
 
