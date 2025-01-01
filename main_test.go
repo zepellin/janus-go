@@ -85,7 +85,10 @@ func TestCreateSessionIdentifier(t *testing.T) {
 	}
 	defer f.Shutdown()
 
-	sessionID, err := createSessionIdentifier(gcpMetadataClient())
+	// Create a GCP metadata client
+	client := newGCPMetadataClient()
+
+	sessionID, err := createSessionIdentifier(client)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -112,7 +115,9 @@ func TestGCEMatadataDataHostname(t *testing.T) {
 	}
 	defer f.Shutdown()
 
-	client := gcpMetadataClient()
+	// Create a GCP metadata client
+	client := newGCPMetadataClient()
+
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
 	}
@@ -139,7 +144,9 @@ func TestGCEMatadataDataProjectID(t *testing.T) {
 	}
 	defer f.Shutdown()
 
-	client := gcpMetadataClient()
+	// Create a GCP metadata client
+	client := newGCPMetadataClient()
+
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
 	}
