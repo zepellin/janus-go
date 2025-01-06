@@ -104,43 +104,51 @@ func main() {
 
 	gcpMetadataClient := newGCPMetadataClient()
 	if gcpMetadataClient == nil {
-		logger.Error("expected non-nil metadata client, got nil")
+		logger.Error("Failed to create GCP metadata client: got nil")
 		os.Exit(1)
 	}
 
 	sessionIdentifier, err := createSessionIdentifier(gcpMetadataClient)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to create session identifier from GCP metadata: %v", err))
+		logger.Error(fmt.Errorf("failed to create session identifier: %w", err).Error())
+		os.Exit(1)
+	}
+
+	// Ensure stsRegion isn't nil
+	if stsRegion == nil {
+		logger.Error("stsRegion is nil, cannot proceed")
 		os.Exit(1)
 	}
 
 	assumeRoleCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*stsRegion))
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to load default AWS config: %v", err))
+		logger.Error(fmt.Errorf("failed to load AWS config: %w", err).Error())
 		os.Exit(1)
 	}
 
 	gcpMetadataTokenSource, err := gcpTokenSource(ctx)
 	if err != nil {
-		logger.Error(fmt.Sprintf("failed to get JWT token from GCP metadata: %v", err))
+		logger.Error(fmt.Errorf("failed to retrieve GCP identity token: %w", err).Error())
 		os.Exit(1)
 	}
 
 	gcpMetadataToken := customIdentityTokenRetriever{tokenSource: gcpMetadataTokenSource}
 
 	stsAssumeClient := sts.NewFromConfig(assumeRoleCfg)
-	awsCredsCache := aws.NewCredentialsCache(stscreds.NewWebIdentityRoleProvider(
-		stsAssumeClient,
-		*awsAssumeRoleArn,
-		gcpMetadataToken,
-		func(o *stscreds.WebIdentityRoleOptions) {
-			o.RoleSessionName = sessionIdentifier
-		}),
+	awsCredsCache := aws.NewCredentialsCache(
+		stscreds.NewWebIdentityRoleProvider(
+			stsAssumeClient,
+			*awsAssumeRoleArn,
+			gcpMetadataToken,
+			func(o *stscreds.WebIdentityRoleOptions) {
+				o.RoleSessionName = sessionIdentifier
+			},
+		),
 	)
 
 	awsCredentials, err := awsCredsCache.Retrieve(ctx)
 	if err != nil {
-		logger.Error(fmt.Sprintf("couldn't retrieve AWS credentials: %v", err))
+		logger.Error(fmt.Errorf("failed to retrieve AWS credentials: %w", err).Error())
 		os.Exit(1)
 	}
 
