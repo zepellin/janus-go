@@ -24,6 +24,8 @@ jobs:
           files: |
             .github/**
             **.md
+      - name: List all changed files
+        run: echo '${{ steps.changed-files.outputs.all_changed_files }}'
 
   e2e:
     runs-on: janus-go-e2e
