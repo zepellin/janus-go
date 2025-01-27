@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
-	github.com/aws/aws-sdk-go-v2 v1.33.0
+	github.com/aws/aws-sdk-go-v2 v1.34.0
 	github.com/aws/aws-sdk-go-v2/config v1.29.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.54
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.9
@@ -65,7 +65,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.10 // indirect
-	github.com/aws/smithy-go v1.22.1 // indirect
+	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/salrashid123/gce_metadata_server v0.0.0-20250106132611-28b24eb9f159
 	github.com/stretchr/testify v1.10.0
 )
