@@ -1,6 +1,8 @@
 module janus
 
-go 1.23.0
+go 1.23.4
+
+toolchain go1.23.6
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
@@ -66,6 +68,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.10 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
-	github.com/salrashid123/gce_metadata_server v0.0.0-20250131125525-e930b72dc40a
+	github.com/salrashid123/gce_metadata_server v0.0.0-20250203122017-fa63928cd3a8
 	github.com/stretchr/testify v1.10.0
 )
