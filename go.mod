@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.54
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.9
-	golang.org/x/oauth2 v0.25.0
+	golang.org/x/oauth2 v0.26.0
 	google.golang.org/api v0.220.0
 )
 
