@@ -2,7 +2,7 @@ module janus
 
 go 1.23.4
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
