@@ -6,9 +6,13 @@
   ],
   "timezone": "Europe/Madrid",
   "schedule": [
-    "before 7am on the first day of the month"
+    "* 20-23 * * *"
   ],
-  "rebaseWhen": "never",
+  "rebaseWhen": "behind-base-branch",
   "separateMajorMinor": true,
   "separateMinorPatch": true
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  }
 }
