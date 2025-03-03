@@ -10,7 +10,7 @@
   ],
   "rebaseWhen": "behind-base-branch",
   "separateMajorMinor": true,
-  "separateMinorPatch": true
+  "separateMinorPatch": true,
   "lockFileMaintenance": {
     "enabled": true,
     "automerge": true
