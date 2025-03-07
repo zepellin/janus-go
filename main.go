@@ -24,6 +24,7 @@ import (
 const (
 	gcpTokenAudience = "gcp"
 	stsRegionDefault = "us-east-1"
+	envSessionId     = "AWS_SESSION_IDENTIFIER" // Environment variable name for session identifier
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -90,9 +91,27 @@ func (c awsTempCredentials) String() string {
 	return fmt.Sprintf("{\"Version\": %d, \"AccessKeyId\": \"%s\", \"SecretAccessKey\": \"%s\", \"SessionToken\": \"%s\", \"Expiration\": \"%s\"}", 1, c.AccessKeyId, c.SecretAccessKey, c.SessionToken, c.Expiration.Format(time.RFC3339))
 }
 
+// getSessionIdentifier retrieves session identifier from command line flag, environment variable,
+// or generates it from GCP metadata (in that order of precedence)
+func getSessionIdentifier(sessionIdFlag string, gcpMetadataClient *metadata.Client) (string, error) {
+	// Check if provided via command line flag
+	if sessionIdFlag != "" {
+		return sessionIdFlag, nil
+	}
+
+	// Check if provided via environment variable
+	if envSessionId := os.Getenv(envSessionId); envSessionId != "" {
+		return envSessionId, nil
+	}
+
+	// Fall back to creating it from GCP metadata
+	return createSessionIdentifier(gcpMetadataClient)
+}
+
 func main() {
 	awsAssumeRoleArn := flag.String("rolearn", "", "AWS role ARN to assume (required)")
 	stsRegion := flag.String("stsregion", stsRegionDefault, "AWS STS region to which requests are made (optional)")
+	sessionId := flag.String("sessionid", "", "AWS session identifier (optional) (defaults AWS_SESSION_IDENTIFIER or GCP metadata)")
 
 	flag.Parse()
 	if *awsAssumeRoleArn == "" {
@@ -108,9 +127,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	sessionIdentifier, err := createSessionIdentifier(gcpMetadataClient)
+	sessionIdentifier, err := getSessionIdentifier(*sessionId, gcpMetadataClient)
 	if err != nil {
-		logger.Error(fmt.Errorf("failed to create session identifier: %w", err).Error())
+		logger.Error(fmt.Errorf("failed to get session identifier: %w", err).Error())
 		os.Exit(1)
 	}
 
