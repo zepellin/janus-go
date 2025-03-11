@@ -13,7 +13,7 @@ This project was inspired by [Janus](https://github.com/doitintl/janus), a pytho
 Download appropriate release for your OS and achitecture from the project's release page.
 
 ```bash
-wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.2.8/janus-v0.2.8-linux-amd64 && chmod +x janus-go
+wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.3.0/janus-v0.3.0-linux-amd64 && chmod +x janus-go
 ```
 ### Inside Kubernetes pod
 To use the binary inside of Kubernetes pod, download the binary using init container and mount the binary path inside of your main container:
@@ -30,7 +30,7 @@ spec:
      image: alpine:3
      command: [sh, -c]
      args:
-       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.2.8/janus-v0.2.8-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
+       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.3.0/janus-v0.3.0-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
      volumeMounts:
        - mountPath: /janus-go
          name: janus-go
