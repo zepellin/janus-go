@@ -43,7 +43,7 @@ func GetSessionIdentifier(sessionIdFlag string, gcpMetadataClient *metadata.Clie
 	}
 
 	// Use hostname as fallback
-	slog.Info("Using local hostname as session identifier", "hostname", hostname)
+	slog.Debug("Using local hostname as session identifier", "hostname", hostname)
 	return hostname, nil
 }
 
