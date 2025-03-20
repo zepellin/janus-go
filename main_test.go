@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+
+	"janus/gcp"
+	"janus/types"
 )
 
 var (
@@ -67,10 +70,9 @@ func MockGCPMetadataServer(tokenSource *oauth2.TokenSource) *mds.MetadataServer 
 	return f
 }
 
-// TestCreateSessionIdentifier is a unit test function that tests the createSessionIdentifier function.
+// TestCreateSessionIdentifier is a unit test function that tests the CreateSessionIdentifier function.
 // It creates a mock metadata server, sets the local metadata server, starts the mock metadata server,
-// and then calls the createSessionIdentifier function to generate a session ID. It compares the generated
-// session ID with the expected session ID and reports any errors encountered during the test.
+// and then calls the CreateSessionIdentifier function to generate a session ID.
 func TestCreateSessionIdentifier(t *testing.T) {
 	// Create a mock metadata server
 	f := MockGCPMetadataServer(&credsTokenSource)
@@ -86,9 +88,9 @@ func TestCreateSessionIdentifier(t *testing.T) {
 	defer f.Shutdown()
 
 	// Create a GCP metadata client
-	client := newGCPMetadataClient()
+	client := gcp.NewMetadataClient()
 
-	sessionID, err := createSessionIdentifier(client)
+	sessionID, err := gcp.CreateSessionIdentifier(client)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -99,9 +101,8 @@ func TestCreateSessionIdentifier(t *testing.T) {
 	}
 }
 
-// TestGCEMatadataDataHostname is a unit test function that tests the functionality of fetching the hostname from the metadata server.
-// It starts a mock metadata server, sets the local metadata server, and verifies the metadata client by fetching the hostname.
-// It compares the retrieved hostname with the expected value and reports any errors encountered during the test.
+// TestGCEMatadataDataHostname is a unit test function that tests the functionality
+// of fetching the hostname from the metadata server.
 func TestGCEMatadataDataHostname(t *testing.T) {
 	// Start a mock metadata server
 	f := MockGCPMetadataServer(&credsTokenSource)
@@ -116,7 +117,7 @@ func TestGCEMatadataDataHostname(t *testing.T) {
 	defer f.Shutdown()
 
 	// Create a GCP metadata client
-	client := newGCPMetadataClient()
+	client := gcp.NewMetadataClient()
 
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
@@ -131,6 +132,7 @@ func TestGCEMatadataDataHostname(t *testing.T) {
 	assert.Equal(t, gceInstanceHostname, metadataHostname, "Retrieved hostname does not match expected value")
 }
 
+// TestGCEMatadataDataProjectID tests fetching the project ID from metadata server
 func TestGCEMatadataDataProjectID(t *testing.T) {
 	// Start a mock metadata server
 	f := MockGCPMetadataServer(&credsTokenSource)
@@ -145,7 +147,7 @@ func TestGCEMatadataDataProjectID(t *testing.T) {
 	defer f.Shutdown()
 
 	// Create a GCP metadata client
-	client := newGCPMetadataClient()
+	client := gcp.NewMetadataClient()
 
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
@@ -160,9 +162,10 @@ func TestGCEMatadataDataProjectID(t *testing.T) {
 	assert.Equal(t, gcpProjectID, metadataProjectID, "Retrieved project ID does not match expected value")
 }
 
+// TestAWSTempCredentials tests the marshaling and unmarshaling of AWSTempCredentials
 func TestAWSTempCredentials(t *testing.T) {
-	// Create a sample awsTempCredentials instance
-	credentials := awsTempCredentials{
+	// Create a sample AWSTempCredentials instance
+	credentials := types.AWSTempCredentials{
 		Version:         1,
 		AccessKeyId:     "access_key",
 		SecretAccessKey: "secret_key",
@@ -173,14 +176,14 @@ func TestAWSTempCredentials(t *testing.T) {
 	// Convert the credentials to JSON
 	jsonData, err := json.Marshal(credentials)
 	if err != nil {
-		t.Errorf("Failed to marshal awsTempCredentials to JSON: %v", err)
+		t.Errorf("Failed to marshal AWSTempCredentials to JSON: %v", err)
 	}
 
-	// Convert the JSON back to awsTempCredentials
-	var parsedCredentials awsTempCredentials
+	// Convert the JSON back to AWSTempCredentials
+	var parsedCredentials types.AWSTempCredentials
 	err = json.Unmarshal(jsonData, &parsedCredentials)
 	if err != nil {
-		t.Errorf("Failed to unmarshal JSON to awsTempCredentials: %v", err)
+		t.Errorf("Failed to unmarshal JSON to AWSTempCredentials: %v", err)
 	}
 
 	// Compare the original and parsed credentials
