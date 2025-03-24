@@ -96,6 +96,9 @@ jobs:
           echo "credential_process = ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1" >> ~/.aws/config
 
       - name: Run with aws-cli
+        shell: bash
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
         run: aws --profile janus-go-e2e-sa-key s3 ls
 
       - name: Clean up
