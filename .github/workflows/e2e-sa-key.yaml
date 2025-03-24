@@ -51,7 +51,7 @@ jobs:
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
           GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
-        run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN > /dev/null
+        run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN
 
       - name: Run directly with sts region
         shell: bash
@@ -87,6 +87,7 @@ jobs:
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
         run: | 
+          mkdir -p ~/.aws
           echo "[profile janus-go-e2e-sa-key]" > ~/.aws/config
           echo "credential_process = ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1" >> ~/.aws/config
 
