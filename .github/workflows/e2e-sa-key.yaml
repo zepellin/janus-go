@@ -44,14 +44,18 @@ jobs:
         run: go build -o janus-go -v .
 
       - name: Save GCP SA key to file
-        run: echo "${{ secrets.GCP_SA_KEY }}" > gcp-sa-key.json
+        run: |
+          echo '${{ secrets.GCP_SA_KEY }}' | base64 -d > gcp-sa-key.json
+          chmod 600 gcp-sa-key.json
+          # Verify the file is valid JSON
+          jq . gcp-sa-key.json > /dev/null
 
       - name: Run directly
         shell: bash
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
           GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
-        run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN
+        run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN > /dev/null
 
       - name: Run directly with sts region
         shell: bash
