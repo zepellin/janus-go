@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 
 	"janus/types"
 )
@@ -64,6 +65,7 @@ func CreateSessionIdentifier(c *metadata.Client) (string, error) {
 func TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	// First try GCE metadata if running on GCP
 	if metadata.OnGCE() {
+		fmt.Printf("Running on GCE, fetching instance identity token\n")
 		token, err := fetchInstanceIdentityToken(ctx)
 		if err == nil {
 			return oauth2.StaticTokenSource(&oauth2.Token{
@@ -106,12 +108,19 @@ func fetchInstanceIdentityToken(ctx context.Context) (string, error) {
 		audience = defaultAudience
 	}
 
-	client := metadata.NewClient(&http.Client{Timeout: 1 * time.Second})
-	token, err := client.Get("instance/service-accounts/default/identity?audience=" + url.QueryEscape(audience))
+	// Use the built-in Google SDK function to get an identity token
+	idTokenSource, err := idtoken.NewTokenSource(ctx, audience)
+	if err != nil {
+		return "", fmt.Errorf("failed to create identity token source: %w", err)
+	}
+
+	// Get the token from the source
+	token, err := idTokenSource.Token()
 	if err != nil {
 		return "", fmt.Errorf("failed to get instance identity token: %w", err)
 	}
-	return token, nil
+
+	return token.AccessToken, nil
 }
 
 // generateIdentityToken generates an identity token from local credentials
