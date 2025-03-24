@@ -55,6 +55,19 @@ jobs:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
         run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 > /dev/null
 
+      - name: Run directly with sts region and session name
+        shell: bash
+        env:
+          AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+        run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 -sessionid e2etest > /dev/null
+
+      - name: Run directly with sts region and session name in an envar
+        shell: bash
+        env:
+          AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          AWS_SESSION_IDENTIFIER: e2etest
+        run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 -sessionid e2etest > /dev/null
+
       - name: Run directly with sts region and double dash params
         shell: bash
         env:
