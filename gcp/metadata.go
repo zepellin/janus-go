@@ -65,7 +65,6 @@ func CreateSessionIdentifier(c *metadata.Client) (string, error) {
 func TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	// First try GCE metadata if running on GCP
 	if metadata.OnGCE() {
-		fmt.Printf("Running on GCE, fetching instance identity token\n")
 		token, err := fetchInstanceIdentityToken(ctx)
 		if err == nil {
 			return oauth2.StaticTokenSource(&oauth2.Token{
