@@ -8,8 +8,10 @@ cloud.google.com/go/iam v1.3.1 h1:KFf8SaT71yYq+sQtRISn90Gyhyf4X8RGgeAVC8XGf3E=
 cloud.google.com/go/iam v1.3.1/go.mod h1:3wMtuyT4NcbnYNPLMBzYRFiEfjKfJlLVLrisE7bwm34=
 github.com/aws/aws-sdk-go-v2 v1.36.3 h1:mJoei2CxPutQVxaATCzDUjcZEjVRdpsiiXi2o38yqWM=
 github.com/aws/aws-sdk-go-v2 v1.36.3/go.mod h1:LLXuLpgzEbD766Z5ECcRmi8AzSwfZItDtmABVkRLGzg=
+github.com/aws/aws-sdk-go-v2/config v1.29.9/go.mod h1:oU3jj2O53kgOU4TXq/yipt6ryiooYjlkqqVaZk7gY/U=
 github.com/aws/aws-sdk-go-v2/config v1.29.10 h1:yNjgjiGBp4GgaJrGythyBXg2wAs+Im9fSWIUwvi1CAc=
 github.com/aws/aws-sdk-go-v2/config v1.29.10/go.mod h1:A0mbLXSdtob/2t59n1X0iMkPQ5d+YzYZB4rwu7SZ7aA=
+github.com/aws/aws-sdk-go-v2/credentials v1.17.62/go.mod h1:ElETBxIQqcxej++Cs8GyPBbgMys5DgQPTwo7cUPDKt8=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.63 h1:rv1V3kIJ14pdmTu01hwcMJ0WAERensSiD9rEWEBb1Tk=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.63/go.mod h1:EJj+yDf0txT26Ulo0VWTavBl31hOsaeuMxIHu2m0suY=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 h1:x793wxmUWVDhshP8WW2mlnXuFrO4cOd3HLBroh1paFw=
@@ -26,6 +28,7 @@ github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15 h1:dM9/92u2
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.15/go.mod h1:SwFBy2vjtA0vZbjjaFtfN045boopadnoVPhu4Fv66vY=
 github.com/aws/aws-sdk-go-v2/service/sso v1.25.1 h1:8JdC7Gr9NROg1Rusk25IcZeTO59zLxsKgE0gkh5O6h0=
 github.com/aws/aws-sdk-go-v2/service/sso v1.25.1/go.mod h1:qs4a9T5EMLl/Cajiw2TcbNt2UNo/Hqlyp+GiuG4CFDI=
+github.com/aws/aws-sdk-go-v2/service/ssooidc v1.29.1/go.mod h1:MlYRNmYu/fGPoxBQVvBYr9nyr948aY/WLUvwBMBJubs=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.29.2 h1:wK8O+j2dOolmpNVY1EWIbLgxrGCHJKVPm08Hv/u80M8=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.29.2/go.mod h1:MlYRNmYu/fGPoxBQVvBYr9nyr948aY/WLUvwBMBJubs=
 github.com/aws/aws-sdk-go-v2/service/sts v1.33.17 h1:PZV5W8yk4OtH1JAuhV2PXwwO9v5G5Aoj+eMCn4T+1Kc=
@@ -89,6 +92,7 @@ github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0leargg
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
+github.com/salrashid123/gce_metadata_server v0.0.0-20250313132556-ea0e054f509d/go.mod h1:EJ/QHUCFMppk4kSKB31HZlGcZ8CtP1CIAjLZEFEHQDY=
 github.com/salrashid123/gce_metadata_server v0.0.0-20250324135502-7d729370726a h1:42tXcdVer3MfJLemJ+mOkM3FWY0p1N+uPRBWvKOoVJ0=
 github.com/salrashid123/gce_metadata_server v0.0.0-20250324135502-7d729370726a/go.mod h1:EJ/QHUCFMppk4kSKB31HZlGcZ8CtP1CIAjLZEFEHQDY=
 github.com/salrashid123/golang-jwt-tpm v1.8.4 h1:SoQYYjRbPMRvFXc5GUzVLl6LJP4h0Y4au537OxqYNHY=

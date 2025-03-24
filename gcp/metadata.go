@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
@@ -184,32 +183,18 @@ func generateIdentityToken(ctx context.Context) (string, error) {
 
 	// Handle service account credentials
 	if cf.Type == "service_account" {
-		conf, err := google.JWTConfigFromJSON(creds.JSON)
+		// Use Google's idtoken package to create a properly formatted OIDC token
+		tokenSource, err := idtoken.NewTokenSource(ctx, audience, idtoken.WithCredentialsJSON(creds.JSON))
 		if err != nil {
-			return "", fmt.Errorf("failed to parse JWT config: %w", err)
+			return "", fmt.Errorf("failed to create token source: %w", err)
 		}
 
-		now := time.Now()
-		claims := jwt.MapClaims{
-			"iss": conf.Email,
-			"sub": conf.Email,
-			"aud": audience,
-			"iat": now.Unix(),
-			"exp": now.Add(time.Hour).Unix(),
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-		key, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(cf.PrivateKey))
+		token, err := tokenSource.Token()
 		if err != nil {
-			return "", fmt.Errorf("failed to parse private key: %w", err)
+			return "", fmt.Errorf("failed to generate token: %w", err)
 		}
 
-		signedToken, err := token.SignedString(key)
-		if err != nil {
-			return "", fmt.Errorf("failed to sign token: %w", err)
-		}
-
-		return signedToken, nil
+		return token.AccessToken, nil
 	}
 
 	return "", fmt.Errorf("unsupported credential type: %s", cf.Type)
