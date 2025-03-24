@@ -1,4 +1,4 @@
-name: Test e2e on GCP
+name: Test e2e with SA key
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
         run: echo '${{ steps.changed-files.outputs.all_changed_files }}'
 
   e2e:
-    runs-on: janus-go-e2e
+    runs-on: ubuntu-latest
     if: ${{ needs.changed-files.outputs.matrix != '[]' }}
     needs: changed-files
     steps:
@@ -43,22 +43,32 @@ jobs:
       - name: Build
         run: go build -o janus-go -v .
 
+      - name: Save GCP SA key to file
+        run: |
+          echo '${{ secrets.GCP_SA_KEY }}' | base64 -d > gcp-sa-key.json
+          chmod 600 gcp-sa-key.json
+          # Verify the file is valid JSON
+          jq . gcp-sa-key.json > /dev/null
+
       - name: Run directly
         shell: bash
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
         run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN > /dev/null
 
       - name: Run directly with sts region
         shell: bash
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
         run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 > /dev/null
 
       - name: Run directly with sts region and session name
         shell: bash
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
         run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 -sessionid e2etest > /dev/null
 
       - name: Run directly with sts region and session name in an envar
@@ -66,13 +76,30 @@ jobs:
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
           AWS_SESSION_IDENTIFIER: e2etest
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
         run: ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1 -sessionid e2etest > /dev/null
 
       - name: Run directly with sts region and double dash params
         shell: bash
         env:
           AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
         run: ./janus-go --rolearn $AWS_IAM_ROLE_ARN --stsregion us-east-1 > /dev/null
 
+      - name: Create aws config file with profile
+        shell: bash
+        env:
+          AWS_IAM_ROLE_ARN: ${{ secrets.AWS_IAM_ROLE_ARN }}
+        run: | 
+          mkdir -p ~/.aws
+          echo "[profile janus-go-e2e-sa-key]" > ~/.aws/config
+          echo "credential_process = ./janus-go -rolearn $AWS_IAM_ROLE_ARN -stsregion us-east-1" >> ~/.aws/config
+
       - name: Run with aws-cli
-        run: aws --profile janus-go-e2e-gcp s3 ls
+        shell: bash
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: gcp-sa-key.json
+        run: aws --profile janus-go-e2e-sa-key s3 ls
+
+      - name: Clean up
+        run: rm gcp-sa-key.json
