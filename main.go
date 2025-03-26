@@ -14,11 +14,18 @@ import (
 
 func main() {
 	awsAssumeRoleArn := flag.String("rolearn", "", "AWS role ARN to assume (required)")
+	printIdToken := flag.Bool("printidtoken", false, "Print Google identity token when log level is DEBUG")
 	stsRegion := flag.String("stsregion", types.STSRegionDefault, "AWS STS region to which requests are made (optional)")
 	sessionId := flag.String("sessionid", "", "AWS session identifier (optional) (defaults AWS_SESSION_IDENTIFIER or GCP metadata)")
 	logLevel := flag.String("loglevel", "ERROR", "Logging level (DEBUG, INFO, WARN, ERROR)")
 
 	flag.Parse()
+
+	// Initialize global configuration
+	types.SetConfig(types.Config{
+		PrintIdToken: *printIdToken,
+		LogLevel:     *logLevel,
+	})
 
 	logger.InitLogger(*logLevel)
 
@@ -61,5 +68,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// AWS CLI config credential_process requires JSON output containing credentials
+	// and expiration time
 	fmt.Printf("%+v\n", credentials)
 }
