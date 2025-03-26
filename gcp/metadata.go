@@ -10,6 +10,8 @@ import (
 	"os"
 	"time"
 
+	"janus/logger"
+
 	"cloud.google.com/go/compute/metadata"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -38,7 +40,39 @@ type credentialsFile struct {
 
 // NewMetadataClient creates a new GCP metadata client
 func NewMetadataClient() *metadata.Client {
-	return metadata.NewClient(&http.Client{Timeout: 1 * time.Second})
+	return metadata.NewClient(&http.Client{Timeout: 500 * time.Microsecond})
+}
+
+// GetSessionIdentifier retrieves session identifier from command line flag, environment variable,
+// or generates it from GCP metadata (in that order of precedence)
+func GetSessionIdentifier(sessionIdFlag string, gcpMetadataClient *metadata.Client) (string, error) {
+	// Check if provided via command line flag
+	if sessionIdFlag != "" {
+		return sessionIdFlag, nil
+	}
+
+	// Check if provided via environment variable
+	if envSessionId := os.Getenv(types.EnvSessionID); envSessionId != "" {
+		return envSessionId, nil
+	}
+
+	// Try creating it from GCP metadata
+	logger.Logger.Debug("Attempting to create session identifier from GCP metadata")
+	sessionId, err := CreateSessionIdentifier(gcpMetadataClient)
+	if err == nil {
+		return sessionId, nil
+	}
+
+	// Fall back to local hostname if GCP metadata fails
+	logger.Logger.Debug("Failed to create session identifier from GCP metadata, falling back to OS hostname", "error", err)
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", fmt.Errorf("couldn't determine session identifier: %w", err)
+	}
+
+	// Use hostname as fallback
+	logger.Logger.Debug("Using local hostname as session identifier", "hostname", hostname)
+	return hostname, nil
 }
 
 // CreateSessionIdentifier constructs AWS session identifier from GCP metadata information.
@@ -71,7 +105,7 @@ func TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 			}), nil
 		}
 		// Log the error but continue to try other methods
-		fmt.Printf("Failed to get GCE instance token: %v\n", err)
+		logger.Logger.Debug("Failed to get GCE instance token", "error", err)
 	}
 
 	// Try generating token from local credentials
