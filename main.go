@@ -15,11 +15,21 @@ import (
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 func main() {
+	showVersion := flag.Bool("version", false, "Print version information")
 	awsAssumeRoleArn := flag.String("rolearn", "", "AWS role ARN to assume (required)")
 	stsRegion := flag.String("stsregion", types.STSRegionDefault, "AWS STS region to which requests are made (optional)")
 	sessionId := flag.String("sessionid", "", "AWS session identifier (optional) (defaults AWS_SESSION_IDENTIFIER or GCP metadata)")
 
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\nCommit: %s\nBuilt: %s\n",
+			types.Version,
+			types.Commit,
+			types.Date)
+		os.Exit(0)
+	}
+
 	if *awsAssumeRoleArn == "" {
 		flag.Usage()
 		os.Exit(1)
