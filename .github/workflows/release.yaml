@@ -31,5 +31,5 @@ jobs:
           -s -w
           -X janus/types.Version=${{ github.event.release.tag_name }}
           -X janus/types.Commit=${{ github.sha }}
-          -X janus/types.Date=$(date -u +%Y-%m-%d)
+          -X janus/types.Date=${{ github.event.release.created_at }}
         build_flags: "-trimpath"
