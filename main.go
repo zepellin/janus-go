@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	showVersion := flag.Bool("version", false, "Print version information")
 	awsAssumeRoleArn := flag.String("rolearn", "", "AWS role ARN to assume (required)")
 	printIdToken := flag.Bool("printidtoken", false, "Print Google identity token when log level is DEBUG")
 	stsRegion := flag.String("stsregion", types.STSRegionDefault, "AWS STS region to which requests are made (optional)")
@@ -20,6 +21,14 @@ func main() {
 	logLevel := flag.String("loglevel", "ERROR", "Logging level (DEBUG, INFO, WARN, ERROR)")
 
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\nCommit: %s\nBuilt: %s\n",
+			types.Version,
+			types.Commit,
+			types.Date)
+		os.Exit(0)
+	}
 
 	// Initialize global configuration
 	types.SetConfig(types.Config{

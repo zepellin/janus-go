@@ -27,5 +27,9 @@ jobs:
         goarch: ${{ matrix.goarch }}
         binary_name: "janus"
         compress_assets: "OFF"
-        ldflags: "-s -w"
+        ldflags: >-
+          -s -w
+          -X janus/types.Version=${{ github.event.release.tag_name }}
+          -X janus/types.Commit=${{ github.sha }}
+          -X janus/types.Date=$(date -u +%Y-%m-%d)
         build_flags: "-trimpath"
