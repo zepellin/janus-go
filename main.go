@@ -45,13 +45,13 @@ func main() {
 
 	ctx := context.Background()
 
-	gcpMetadataClient := gcp.NewMetadataClient()
+	gcpMetadataClient := gcp.NewMetadataClient(ctx)
 	if gcpMetadataClient == nil {
 		logger.Logger.Error("Failed to create GCP metadata client: got nil")
 		os.Exit(1)
 	}
 
-	sessionIdentifier, err := gcp.GetSessionIdentifier(*sessionId, gcpMetadataClient)
+	sessionIdentifier, err := gcp.GetSessionIdentifier(ctx, *sessionId, gcpMetadataClient)
 	if err != nil {
 		logger.Logger.Error(fmt.Errorf("failed to get session identifier: %w", err).Error())
 		os.Exit(1)
