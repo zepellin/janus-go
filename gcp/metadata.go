@@ -144,7 +144,7 @@ func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadata
 // CreateSessionIdentifier constructs AWS session identifier from GCP metadata information.
 // This implementation uses concatenation of GCP project ID and machine hostname.
 func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient) (string, error) {
-	projectId, err := c.ProjectIDWithContext(ctx)
+	projectID, err := c.ProjectIDWithContext(ctx)
 	if err != nil {
 		return "", fmt.Errorf("couldn't fetch ProjectID from GCP metadata server: %w", err)
 	}
@@ -154,7 +154,7 @@ func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient)
 		return "", fmt.Errorf("couldn't fetch Hostname from GCP metadata server: %w", err)
 	}
 
-	return fmt.Sprintf("%s-%s", projectId, hostname)[:32], nil
+	return fmt.Sprintf("%s-%s", projectID, hostname)[:32], nil
 }
 
 // printIdentityTokenIfEnabled prints the identity token if enabled in config and log level is DEBUG

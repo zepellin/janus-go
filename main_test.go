@@ -88,7 +88,7 @@ func setupMockServer(t *testing.T) (*mds.MetadataServer, func()) {
 	}
 
 	// Give the server a moment to start up
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	return f, func() {
 		f.Shutdown()
