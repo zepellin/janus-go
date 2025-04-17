@@ -146,7 +146,7 @@ func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadata
 func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient) (string, error) {
 	projectId, err := c.ProjectIDWithContext(ctx)
 	if err != nil {
-		return "", fmt.Errorf("couldn't fetch ProjectId from GCP metadata server: %w", err)
+		return "", fmt.Errorf("couldn't fetch ProjectID from GCP metadata server: %w", err)
 	}
 
 	hostname, err := c.HostnameWithContext(ctx)

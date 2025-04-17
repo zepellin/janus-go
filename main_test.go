@@ -114,7 +114,7 @@ func TestCreateSessionIdentifier(t *testing.T) {
 	}
 }
 
-func TestGCEMatadataDataHostname(t *testing.T) {
+func TestGCEMetadataHostname(t *testing.T) {
 	_, cleanup := setupMockServer(t)
 	defer cleanup()
 
@@ -133,7 +133,7 @@ func TestGCEMatadataDataHostname(t *testing.T) {
 	assert.Equal(t, gceInstanceHostname, metadataHostname, "Retrieved hostname does not match expected value")
 }
 
-func TestGCEMatadataDataProjectID(t *testing.T) {
+func TestGCEMetadataProjectID(t *testing.T) {
 	_, cleanup := setupMockServer(t)
 	defer cleanup()
 
