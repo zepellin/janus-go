@@ -13,6 +13,7 @@ import (
 	"golang.org/x/oauth2/google"
 
 	"janus/gcp"
+	"janus/logger"
 	"janus/types"
 )
 
@@ -27,10 +28,16 @@ var (
 	)
 )
 
+func init() {
+	// Initialize logger for tests
+	types.SetConfig(types.Config{
+		PrintIdToken: false,
+		LogLevel:     "ERROR",
+	})
+	logger.InitLogger("ERROR")
+}
+
 // MockGCPMetadataServer creates and returns a mock GCP metadata server.
-// It uses default credentials for the metadata server and binds to the
-// local interface on port 8080. The server is configured with the provided
-// GCP project ID and GCE instance hostname.
 func MockGCPMetadataServer(tokenSource *oauth2.TokenSource) *mds.MetadataServer {
 	ctx := context.Background()
 
@@ -70,27 +77,33 @@ func MockGCPMetadataServer(tokenSource *oauth2.TokenSource) *mds.MetadataServer 
 	return f
 }
 
-// TestCreateSessionIdentifier is a unit test function that tests the CreateSessionIdentifier function.
-// It creates a mock metadata server, sets the local metadata server, starts the mock metadata server,
-// and then calls the CreateSessionIdentifier function to generate a session ID.
-func TestCreateSessionIdentifier(t *testing.T) {
-	// Create a mock metadata server
+// setupMockServer is a helper function that sets up and verifies the mock metadata server is ready
+func setupMockServer(t *testing.T) (*mds.MetadataServer, func()) {
 	f := MockGCPMetadataServer(&credsTokenSource)
-
-	// Use local metadata server
 	t.Setenv("GCE_METADATA_HOST", "127.0.0.1:8080")
 
-	// Start a mock metadata server
 	err := f.Start()
 	if err != nil {
-		t.Errorf("Failed to start metadata server: %v", err)
+		t.Fatalf("Failed to start metadata server: %v", err)
 	}
-	defer f.Shutdown()
 
-	// Create a GCP metadata client
-	client := gcp.NewMetadataClient()
+	// Give the server a moment to start up
+	time.Sleep(100 * time.Millisecond)
 
-	sessionID, err := gcp.CreateSessionIdentifier(client)
+	return f, func() {
+		f.Shutdown()
+	}
+}
+
+// TestCreateSessionIdentifier is a unit test function that tests the CreateSessionIdentifier function.
+func TestCreateSessionIdentifier(t *testing.T) {
+	_, cleanup := setupMockServer(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	client := gcp.NewMetadataClient(ctx)
+
+	sessionID, err := gcp.CreateSessionIdentifier(ctx, client)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -101,29 +114,17 @@ func TestCreateSessionIdentifier(t *testing.T) {
 	}
 }
 
-// TestGCEMatadataDataHostname is a unit test function that tests the functionality
-// of fetching the hostname from the metadata server.
 func TestGCEMatadataDataHostname(t *testing.T) {
-	// Start a mock metadata server
-	f := MockGCPMetadataServer(&credsTokenSource)
+	_, cleanup := setupMockServer(t)
+	defer cleanup()
 
-	// Use local metadata server
-	t.Setenv("GCE_METADATA_HOST", "127.0.0.1:8080")
-
-	err := f.Start()
-	if err != nil {
-		t.Errorf("Failed to start metadata server: %v", err)
-	}
-	defer f.Shutdown()
-
-	// Create a GCP metadata client
-	client := gcp.NewMetadataClient()
+	ctx := context.Background()
+	client := gcp.NewMetadataClient(ctx)
 
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
 	}
 
-	// Test the metadata client by fetching the hostname
 	metadataHostname, err := client.Hostname()
 	if err != nil {
 		t.Errorf("Failed to fetch hostname from metadata server: %v", err)
@@ -132,31 +133,20 @@ func TestGCEMatadataDataHostname(t *testing.T) {
 	assert.Equal(t, gceInstanceHostname, metadataHostname, "Retrieved hostname does not match expected value")
 }
 
-// TestGCEMatadataDataProjectID tests fetching the project ID from metadata server
 func TestGCEMatadataDataProjectID(t *testing.T) {
-	// Start a mock metadata server
-	f := MockGCPMetadataServer(&credsTokenSource)
+	_, cleanup := setupMockServer(t)
+	defer cleanup()
 
-	// Use local metadata server
-	t.Setenv("GCE_METADATA_HOST", "127.0.0.1:8080")
-
-	err := f.Start()
-	if err != nil {
-		t.Errorf("Failed to start metadata server: %v", err)
-	}
-	defer f.Shutdown()
-
-	// Create a GCP metadata client
-	client := gcp.NewMetadataClient()
+	ctx := context.Background()
+	client := gcp.NewMetadataClient(ctx)
 
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
 	}
 
-	// Test the metadata client by fetching the project ID
 	metadataProjectID, err := client.ProjectID()
 	if err != nil {
-		t.Errorf("Failed to fetch hostname from metadata server: %v", err)
+		t.Errorf("Failed to fetch project ID from metadata server: %v", err)
 	}
 
 	assert.Equal(t, gcpProjectID, metadataProjectID, "Retrieved project ID does not match expected value")
@@ -192,4 +182,70 @@ func TestAWSTempCredentials(t *testing.T) {
 	assert.Equal(t, credentials.SecretAccessKey, parsedCredentials.SecretAccessKey, "SecretAccessKey mismatch")
 	assert.Equal(t, credentials.SessionToken, parsedCredentials.SessionToken, "SessionToken mismatch")
 	assert.True(t, credentials.Expiration.Equal(parsedCredentials.Expiration), "Expiration mismatch")
+}
+
+// TestContextCancellation verifies that operations respect context cancellation
+func TestContextCancellation(t *testing.T) {
+	_, cleanup := setupMockServer(t)
+	defer cleanup()
+
+	// Create a cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Create a GCP metadata client with the cancellable context
+	client := gcp.NewMetadataClient(ctx)
+
+	// Cancel the context before making the request
+	cancel()
+
+	// Sleep briefly to ensure cancellation propagates
+	time.Sleep(10 * time.Millisecond)
+
+	// Try to get ProjectID directly first
+	_, err := client.ProjectIDWithContext(ctx)
+	if err == nil {
+		t.Error("Expected error when getting ProjectID with cancelled context, got nil")
+	} else if ctx.Err() != err {
+		t.Errorf("Expected context.Canceled error, got: %v", err)
+	}
+
+	// Now try to get session identifier
+	_, err = gcp.GetSessionIdentifier(ctx, "", client)
+	if err == nil {
+		t.Error("Expected error when getting session identifier with cancelled context, got nil")
+	} else if ctx.Err() != err {
+		t.Errorf("Expected context.Canceled error, got: %v", err)
+	}
+}
+
+// TestContextTimeout verifies that operations respect context timeout
+func TestContextTimeout(t *testing.T) {
+	_, cleanup := setupMockServer(t)
+	defer cleanup()
+
+	// Create a context with a short timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	// Create a GCP metadata client with the timeout context
+	client := gcp.NewMetadataClient(ctx)
+
+	// Sleep to ensure timeout occurs
+	time.Sleep(10 * time.Millisecond)
+
+	// Try to get ProjectID directly first
+	_, err := client.ProjectIDWithContext(ctx)
+	if err == nil {
+		t.Error("Expected error when getting ProjectID with timed out context, got nil")
+	} else if ctx.Err() != err {
+		t.Errorf("Expected context.DeadlineExceeded error, got: %v", err)
+	}
+
+	// Now try to get session identifier
+	_, err = gcp.GetSessionIdentifier(ctx, "", client)
+	if err == nil {
+		t.Error("Expected error when getting session identifier with timed out context, got nil")
+	} else if ctx.Err() != err {
+		t.Errorf("Expected context.DeadlineExceeded error, got: %v", err)
+	}
 }
