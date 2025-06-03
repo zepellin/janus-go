@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+	"time"
 
 	"janus/logger"
 
@@ -23,6 +25,7 @@ const (
 	defaultAudience        = types.GCPTokenAudience
 	googleCloudSDKAudience = "32555940559.apps.googleusercontent.com"
 	googleTokenInfoURL     = "https://oauth2.googleapis.com/token"
+	metadataClientTimeout  = 3 * time.Second // Timeout for GCP metadata client requests
 )
 
 // credentialsFile represents the structure of the credentials JSON file
@@ -50,6 +53,7 @@ func NewMetadataClient(ctx context.Context) *contextAwareMetadataClient {
 			base: http.DefaultTransport,
 			ctx:  ctx,
 		},
+		Timeout: metadataClientTimeout,
 	})
 
 	return &contextAwareMetadataClient{
@@ -264,11 +268,10 @@ func generateIdentityToken(ctx context.Context) (string, error) {
 		data.Set("grant_type", "refresh_token")
 		data.Set("audience", googleCloudSDKAudience)
 
-		req, err := http.NewRequestWithContext(ctx, "POST", googleTokenInfoURL, nil)
+		req, err := http.NewRequestWithContext(ctx, "POST", googleTokenInfoURL, strings.NewReader(data.Encode()))
 		if err != nil {
 			return "", fmt.Errorf("failed to create token request: %w", err)
 		}
-		req.URL.RawQuery = data.Encode()
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		resp, err := http.DefaultClient.Do(req)
