@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"janus/logger"
 
@@ -264,11 +265,10 @@ func generateIdentityToken(ctx context.Context) (string, error) {
 		data.Set("grant_type", "refresh_token")
 		data.Set("audience", googleCloudSDKAudience)
 
-		req, err := http.NewRequestWithContext(ctx, "POST", googleTokenInfoURL, nil)
+		req, err := http.NewRequestWithContext(ctx, "POST", googleTokenInfoURL, strings.NewReader(data.Encode()))
 		if err != nil {
 			return "", fmt.Errorf("failed to create token request: %w", err)
 		}
-		req.URL.RawQuery = data.Encode()
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		resp, err := http.DefaultClient.Do(req)
