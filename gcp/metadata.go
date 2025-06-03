@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"janus/logger"
 
@@ -24,6 +25,7 @@ const (
 	defaultAudience        = types.GCPTokenAudience
 	googleCloudSDKAudience = "32555940559.apps.googleusercontent.com"
 	googleTokenInfoURL     = "https://oauth2.googleapis.com/token"
+	metadataClientTimeout  = 3 * time.Second // Timeout for GCP metadata client requests
 )
 
 // credentialsFile represents the structure of the credentials JSON file
@@ -51,6 +53,7 @@ func NewMetadataClient(ctx context.Context) *contextAwareMetadataClient {
 			base: http.DefaultTransport,
 			ctx:  ctx,
 		},
+		Timeout: metadataClientTimeout,
 	})
 
 	return &contextAwareMetadataClient{
@@ -145,17 +148,24 @@ func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadata
 // CreateSessionIdentifier constructs AWS session identifier from GCP metadata information.
 // This implementation uses concatenation of GCP project ID and machine hostname.
 func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient) (string, error) {
-	projectID, err := c.ProjectIDWithContext(ctx)
+	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Second) // 2 seconds in nanoseconds
+	defer cancel()
+
+	projectID, err := c.ProjectIDWithContext(timeoutCtx)
 	if err != nil {
 		return "", fmt.Errorf("couldn't fetch ProjectID from GCP metadata server: %w", err)
 	}
 
-	hostname, err := c.HostnameWithContext(ctx)
+	hostname, err := c.HostnameWithContext(timeoutCtx)
 	if err != nil {
 		return "", fmt.Errorf("couldn't fetch Hostname from GCP metadata server: %w", err)
 	}
 
-	return fmt.Sprintf("%s-%s", projectID, hostname)[:32], nil
+	identifier := fmt.Sprintf("%s-%s", projectID, hostname)
+	if len(identifier) > 32 {
+		identifier = identifier[:32]
+	}
+	return identifier, nil
 }
 
 // printIdentityTokenIfEnabled prints the identity token if enabled in config and log level is DEBUG
