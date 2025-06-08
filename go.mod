@@ -1,6 +1,6 @@
 module janus
 
-go 1.24.1
+go 1.24.4
 
 require (
 	cloud.google.com/go/compute/metadata v0.7.0
