@@ -187,6 +187,8 @@ github.com/salrashid123/gce_metadata_server v0.0.0-20250528102101-d1a53cb4dc5f h
 github.com/salrashid123/gce_metadata_server v0.0.0-20250528102101-d1a53cb4dc5f/go.mod h1:KCew/5zFwtGqij/+6v6cvAS2LMAUr8wdo73Kv9lSxtU=
 github.com/salrashid123/gce_metadata_server v0.0.0-20250529102858-68e2bfb83df9 h1:1jvUWV5VunhMObjHocFhrRI6zoFk0alzayTwEvsg/3U=
 github.com/salrashid123/gce_metadata_server v0.0.0-20250529102858-68e2bfb83df9/go.mod h1:KCew/5zFwtGqij/+6v6cvAS2LMAUr8wdo73Kv9lSxtU=
+github.com/salrashid123/gce_metadata_server v0.0.0-20250616202235-142ea19c2489 h1:cGmTqK+kISr+6kksSwPjX0o0YzYN4OmqHeAxD7lWONw=
+github.com/salrashid123/gce_metadata_server v0.0.0-20250616202235-142ea19c2489/go.mod h1:KCew/5zFwtGqij/+6v6cvAS2LMAUr8wdo73Kv9lSxtU=
 github.com/salrashid123/golang-jwt-tpm v1.8.4 h1:SoQYYjRbPMRvFXc5GUzVLl6LJP4h0Y4au537OxqYNHY=
 github.com/salrashid123/golang-jwt-tpm v1.8.4/go.mod h1:j09G3lbE4f1xA8b/iJylp+vjM9zjbXU56+OS70eifTg=
 github.com/salrashid123/golang-jwt-tpm v1.8.9 h1:IvUWjP/ErgqlAkj7IoZWSqGuS5PaObjBe0lcUO9rNLY=
