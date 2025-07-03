@@ -37,6 +37,7 @@ require (
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.16.0 // indirect
 	github.com/salrashid123/golang-jwt-tpm v1.8.9 // indirect
+	github.com/salrashid123/oauth2/v3 v3.0.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
@@ -66,6 +67,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.3 // indirect
 	github.com/aws/smithy-go v1.22.4 // indirect
-	github.com/salrashid123/gce_metadata_server v0.0.0-20250630111145-7c37b54315f3
+	github.com/salrashid123/gce_metadata_server v0.0.0-20250703113426-77c2a4aae9ab
 	github.com/stretchr/testify v1.10.0
 )
