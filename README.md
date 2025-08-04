@@ -21,7 +21,7 @@ This project was inspired by [Janus](https://github.com/doitintl/janus), a pytho
 Download appropriate release for your OS and achitecture from the project's release page.
 
 ```bash
-wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.4.2/janus-v0.4.2-linux-amd64 && chmod +x janus-go
+wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.4.5/janus-v0.4.5-linux-amd64 && chmod +x janus-go
 ```
 
 ### Inside of a Kubernetes pod
@@ -40,7 +40,7 @@ spec:
      image: alpine:3
      command: [sh, -c]
      args:
-       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.4.2/janus-v0.4.2-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
+       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.4.5/janus-v0.4.5-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
      volumeMounts:
        - mountPath: /janus-go
          name: janus-go
