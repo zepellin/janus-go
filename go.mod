@@ -67,6 +67,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0 // indirect
 	github.com/aws/smithy-go v1.22.5 // indirect
-	github.com/salrashid123/gce_metadata_server v0.0.0-20250805153119-d67a7892144b
+	github.com/salrashid123/gce_metadata_server v0.0.0-20250811154309-e3a594886246
 	github.com/stretchr/testify v1.10.0
 )
