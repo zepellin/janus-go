@@ -13,7 +13,7 @@ jobs:
       matrix: ${{ steps.changed-files.outputs.all_changed_files }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && 1 || 0 }} # https://github.com/tj-actions/changed-files?tab=readme-ov-file#usage-
       - name: Get changed files
@@ -32,7 +32,7 @@ jobs:
     if: ${{ needs.changed-files.outputs.matrix != '[]' }}
     needs: changed-files
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
