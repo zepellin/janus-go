@@ -4,6 +4,9 @@
   "extends": [
     "config:recommended"
   ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ]
   "timezone": "Europe/Madrid",
   "schedule": [
     "* 20-23 * * *"
