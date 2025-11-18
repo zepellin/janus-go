@@ -162,8 +162,7 @@ func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient)
 }
 
 // printIdentityTokenIfEnabled prints the identity token if enabled in config and log level is DEBUG
-func printIdentityTokenIfEnabled(tokenSource oauth2.TokenSource) {
-	config := types.GetConfig()
+func printIdentityTokenIfEnabled(config types.Config, tokenSource oauth2.TokenSource) {
 	if config.PrintIdToken && config.LogLevel == "DEBUG" {
 		if token, err := tokenSource.Token(); err != nil {
 			logger.Logger.Error(fmt.Errorf("failed to get identity token for printing: %w", err).Error())
@@ -176,7 +175,7 @@ func printIdentityTokenIfEnabled(tokenSource oauth2.TokenSource) {
 // TokenSource returns an OAuth2 token source for authenticating with GCP.
 // It first tries to get a token from GCE metadata if running on GCP,
 // then falls back to local credentials if not on GCP.
-func TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+func TokenSource(ctx context.Context, config types.Config) (oauth2.TokenSource, error) {
 	// First try GCE metadata if running on GCP
 	if metadata.OnGCE() {
 		token, err := fetchInstanceIdentityToken(ctx)
@@ -184,7 +183,7 @@ func TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 			tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 				AccessToken: token,
 			})
-			printIdentityTokenIfEnabled(tokenSource)
+			printIdentityTokenIfEnabled(config, tokenSource)
 			return tokenSource, nil
 		}
 		// Log the error but continue to try other methods
@@ -200,7 +199,7 @@ func TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: token,
 	})
-	printIdentityTokenIfEnabled(tokenSource)
+	printIdentityTokenIfEnabled(config, tokenSource)
 	return tokenSource, nil
 }
 
