@@ -10,7 +10,7 @@ import (
 // Also supports AWS partitions (aws, aws-cn, aws-us-gov)
 var arnPattern = regexp.MustCompile(`^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role\/[a-zA-Z0-9+=,.@\-_/]+$`)
 
-// validAWSRegions contains all valid AWS regions as of 2024
+// validAWSRegions contains all valid AWS regions as of November 2025
 // Source: https://docs.aws.amazon.com/general/latest/gr/rande.html
 var validAWSRegions = map[string]bool{
 	// US regions
