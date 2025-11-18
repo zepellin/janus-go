@@ -30,10 +30,6 @@ var (
 
 func init() {
 	// Initialize logger for tests
-	types.SetConfig(types.Config{
-		PrintIdToken: false,
-		LogLevel:     "ERROR",
-	})
 	logger.InitLogger("ERROR")
 }
 

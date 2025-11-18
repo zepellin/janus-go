@@ -30,15 +30,20 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Initialize global configuration
-	types.SetConfig(types.Config{
-		PrintIdToken: *printIdToken,
-		LogLevel:     *logLevel,
-	})
-
 	logger.InitLogger(*logLevel)
 
-	if *awsAssumeRoleArn == "" {
+	config := types.Config{
+		PrintIdToken: *printIdToken,
+		LogLevel:     *logLevel,
+	}
+
+	if err := types.ValidateRoleArn(*awsAssumeRoleArn); err != nil {
+		logger.Logger.Error(err.Error())
+		flag.Usage()
+		os.Exit(1)
+	}
+	if err := types.ValidateSTSRegion(*stsRegion); err != nil {
+		logger.Logger.Error(err.Error())
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -46,10 +51,6 @@ func main() {
 	ctx := context.Background()
 
 	gcpMetadataClient := gcp.NewMetadataClient(ctx)
-	if gcpMetadataClient == nil {
-		logger.Logger.Error("Failed to create GCP metadata client: got nil")
-		os.Exit(1)
-	}
 
 	sessionIdentifier, err := gcp.GetSessionIdentifier(ctx, *sessionId, gcpMetadataClient)
 	if err != nil {
@@ -57,13 +58,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Ensure stsRegion isn't nil
-	if stsRegion == nil {
-		logger.Logger.Error("stsRegion is nil, cannot proceed")
-		os.Exit(1)
-	}
-
-	gcpMetadataTokenSource, err := gcp.TokenSource(ctx)
+	gcpMetadataTokenSource, err := gcp.TokenSource(ctx, config)
 	if err != nil {
 		logger.Logger.Error(fmt.Errorf("failed to retrieve GCP identity token: %w", err).Error())
 		os.Exit(1)
