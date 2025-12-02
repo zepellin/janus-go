@@ -5,8 +5,8 @@ on:
     types: [created]
 
 permissions:
-    contents: write
-    packages: write
+  contents: write
+  packages: write
 
 jobs:
   releases-matrix:
@@ -17,19 +17,19 @@ jobs:
         goos: [linux, darwin]
         goarch: [amd64, arm64]
     steps:
-    - uses: actions/checkout@v5
-    - uses: wangyoucao577/go-release-action@v1
-      env:
-        CGO_ENABLED: 0
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        binary_name: "janus"
-        compress_assets: "OFF"
-        ldflags: >-
-          -s -w
-          -X janus/types.Version=${{ github.event.release.tag_name }}
-          -X janus/types.Commit=${{ github.sha }}
-          -X janus/types.Date=${{ github.event.release.created_at }}
-        build_flags: "-trimpath"
+      - uses: actions/checkout@v5
+      - uses: wangyoucao577/go-release-action@v1
+        env:
+          CGO_ENABLED: 0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          binary_name: "janus"
+          compress_assets: "OFF"
+          ldflags: >-
+            -s -w
+            -X janus/types.Version=${{ github.event.release.tag_name }}
+            -X janus/types.Commit=${{ github.sha }}
+            -X janus/types.Date=${{ github.event.release.created_at }}
+          build_flags: "-trimpath"

@@ -2,13 +2,18 @@ name: Test e2e on GCP
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
   changed-files:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.changed-files.outputs.all_changed_files }}
     steps:
@@ -31,13 +36,15 @@ jobs:
     runs-on: janus-go-e2e
     if: ${{ needs.changed-files.outputs.matrix != '[]' }}
     needs: changed-files
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: false
 
       - name: Build
