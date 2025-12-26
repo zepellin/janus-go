@@ -102,8 +102,8 @@ github.com/prometheus/procfs v0.19.2 h1:zUMhqEW66Ex7OXIiDkll3tl9a1ZdilUOd/F6ZXw4
 github.com/prometheus/procfs v0.19.2/go.mod h1:M0aotyiemPhBCM0z5w87kL22CxfcH05ZpYlu+b4J7mw=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
-github.com/salrashid123/gce_metadata_server v0.0.0-20251216105604-455080bf4dfa h1:fRe6uvwfMLfLs6NsBgs6APw5Eho6VN1Ae0Gb9PWxvt8=
-github.com/salrashid123/gce_metadata_server v0.0.0-20251216105604-455080bf4dfa/go.mod h1:W32EVu9Sw8loZxWk+h3kUsCMPtOYDAf1j8I7um0fNiU=
+github.com/salrashid123/gce_metadata_server v0.0.0-20251226113234-4d539ebb8313 h1:oCWPv/sTTlXvHyoV7CW8knl/QBpifpCWaiBiRpnJxV0=
+github.com/salrashid123/gce_metadata_server v0.0.0-20251226113234-4d539ebb8313/go.mod h1:W32EVu9Sw8loZxWk+h3kUsCMPtOYDAf1j8I7um0fNiU=
 github.com/salrashid123/golang-jwt-tpm v1.8.97 h1:bux56qLDmFTWStiIkDQhR3j/7UhnbVIP0yr2458mX0U=
 github.com/salrashid123/golang-jwt-tpm v1.8.97/go.mod h1:LBBa8kjaUFXOfJ05/UWykl2dYz/OmzvdrvyrjDeDOVc=
 github.com/salrashid123/oauth2/v3 v3.0.9 h1:UkpiBylD8JoBZD1h5bEUzVMr5B3b1Xz2PLtw5exATEY=
