@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -18,10 +17,4 @@ type AWSTempCredentials struct {
 	SecretAccessKey string    `json:"SecretAccessKey"`
 	SessionToken    string    `json:"SessionToken"`
 	Expiration      time.Time `json:"Expiration"`
-}
-
-// String returns a JSON representation of AWSTempCredentials
-func (c AWSTempCredentials) String() string {
-	return fmt.Sprintf("{\"Version\": %d, \"AccessKeyId\": \"%s\", \"SecretAccessKey\": \"%s\", \"SessionToken\": \"%s\", \"Expiration\": \"%s\"}",
-		1, c.AccessKeyId, c.SecretAccessKey, c.SessionToken, c.Expiration.Format(time.RFC3339))
 }
