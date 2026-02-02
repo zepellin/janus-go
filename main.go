@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -74,5 +75,8 @@ func main() {
 
 	// AWS CLI config credential_process requires JSON output containing credentials
 	// and expiration time
-	fmt.Printf("%+v\n", credentials)
+	if err := json.NewEncoder(os.Stdout).Encode(credentials); err != nil {
+		logger.Logger.Error(fmt.Errorf("failed to encode credentials: %w", err).Error())
+		os.Exit(1)
+	}
 }
