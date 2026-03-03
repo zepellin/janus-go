@@ -21,7 +21,7 @@ This project was inspired by [Janus](https://github.com/doitintl/janus), a pytho
 Download appropriate release for your OS and achitecture from the project's release page.
 
 ```bash
-wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.4.5/janus-v0.4.5-linux-amd64 && chmod +x janus-go
+wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.6.0/janus-v0.6.0-linux-amd64 && chmod +x janus-go
 ```
 
 ### Inside of a Kubernetes pod
@@ -40,7 +40,7 @@ spec:
      image: alpine:3
      command: [sh, -c]
      args:
-       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.4.5/janus-v0.4.5-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
+       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.6.0/janus-v0.6.0-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
      volumeMounts:
        - mountPath: /janus-go
          name: janus-go
@@ -55,6 +55,57 @@ spec:
   volumes:
    - name: janus-go
      emptyDir: {}
+```
+
+Alternatively, use the published OCI image as a Kubernetes image volume (where supported by your Kubernetes version/configuration):
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-pod
+spec:
+  containers:
+    - name: main-container
+      image: my-app-image:latest
+      volumeMounts:
+        - mountPath: /usr/local/bin/janus-go
+          name: janus-go
+          subPath: janus-go
+          readOnly: true
+  volumes:
+    - name: janus-go
+      image:
+        reference: ghcr.io/zepellin/janus-go-volume:v0.6.0
+        pullPolicy: IfNotPresent
+```
+
+### Image naming and tags
+
+The Kubernetes image-volume artifact is published to GitHub Container Registry as:
+
+```text
+ghcr.io/<owner>/<repo>-volume
+```
+
+For this repository, that resolves to:
+
+```text
+ghcr.io/zepellin/janus-go-volume
+```
+
+Tag behavior:
+
+- Release tags: `vX.Y.Z` (for example `v0.6.0`)
+- Commit tags: `sha-<git-sha>`
+- `latest`: published from the default branch
+
+Examples:
+
+```text
+ghcr.io/zepellin/janus-go-volume:v0.6.0
+ghcr.io/zepellin/janus-go-volume:sha-abc1234def56
+ghcr.io/zepellin/janus-go-volume:latest
 ```
 
 ## Usage
