@@ -2,6 +2,8 @@ module janus
 
 go 1.25.2
 
+toolchain go1.26.1
+
 require (
 	cloud.google.com/go/compute/metadata v0.9.0
 	github.com/aws/aws-sdk-go-v2 v1.41.5
