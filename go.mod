@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.14
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.10
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.273.0
+	google.golang.org/api v0.273.1
 )
 
 require (
