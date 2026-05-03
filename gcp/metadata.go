@@ -40,30 +40,24 @@ type credentialsFile struct {
 	ClientEmail  string `json:"client_email"`
 }
 
-// contextAwareMetadataClient wraps the standard metadata.Client with better context handling
-type contextAwareMetadataClient struct {
+// MetadataClient wraps the standard metadata.Client
+type MetadataClient struct {
 	*metadata.Client
-	ctx context.Context
 }
 
-// NewMetadataClient creates a new GCP metadata client with context
-func NewMetadataClient(ctx context.Context) *contextAwareMetadataClient {
+// NewMetadataClient creates a new GCP metadata client
+func NewMetadataClient(_ context.Context) *MetadataClient {
 	baseClient := metadata.NewClient(&http.Client{
-		Transport: &contextTransport{
-			base: http.DefaultTransport,
-			ctx:  ctx,
-		},
 		Timeout: metadataClientTimeout,
 	})
 
-	return &contextAwareMetadataClient{
+	return &MetadataClient{
 		Client: baseClient,
-		ctx:    ctx,
 	}
 }
 
 // ProjectIDWithContext gets the project ID with context awareness
-func (c *contextAwareMetadataClient) ProjectIDWithContext(ctx context.Context) (string, error) {
+func (c *MetadataClient) ProjectIDWithContext(ctx context.Context) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -71,35 +65,16 @@ func (c *contextAwareMetadataClient) ProjectIDWithContext(ctx context.Context) (
 }
 
 // HostnameWithContext gets the hostname with context awareness
-func (c *contextAwareMetadataClient) HostnameWithContext(ctx context.Context) (string, error) {
+func (c *MetadataClient) HostnameWithContext(ctx context.Context) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	return c.Client.HostnameWithContext(ctx)
 }
 
-type contextTransport struct {
-	base http.RoundTripper
-	ctx  context.Context
-}
-
-func (t *contextTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Check context state before making the request
-	select {
-	case <-t.ctx.Done():
-		return nil, t.ctx.Err()
-	default:
-		// Context is still valid, proceed with the request
-	}
-
-	// Create a new request with our context
-	req = req.WithContext(t.ctx)
-	return t.base.RoundTrip(req)
-}
-
 // GetSessionIdentifier retrieves session identifier from command line flag, environment variable,
 // or generates it from GCP metadata (in that order of precedence)
-func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadataClient *contextAwareMetadataClient) (string, error) {
+func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadataClient *MetadataClient) (string, error) {
 	// First check context state
 	if err := ctx.Err(); err != nil {
 		return "", err
@@ -147,7 +122,7 @@ func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadata
 
 // CreateSessionIdentifier constructs AWS session identifier from GCP metadata information.
 // This implementation uses concatenation of GCP project ID and machine hostname.
-func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient) (string, error) {
+func CreateSessionIdentifier(ctx context.Context, c *MetadataClient) (string, error) {
 	projectID, err := c.ProjectIDWithContext(ctx)
 	if err != nil {
 		return "", fmt.Errorf("couldn't fetch ProjectID from GCP metadata server: %w", err)
@@ -158,7 +133,11 @@ func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient)
 		return "", fmt.Errorf("couldn't fetch Hostname from GCP metadata server: %w", err)
 	}
 
-	return fmt.Sprintf("%s-%s", projectID, hostname)[:32], nil
+	s := fmt.Sprintf("%s-%s", projectID, hostname)
+	if len(s) > 32 {
+		s = s[:32]
+	}
+	return s, nil
 }
 
 // printIdentityTokenIfEnabled prints the identity token if enabled in config and log level is DEBUG

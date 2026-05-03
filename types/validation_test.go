@@ -191,6 +191,12 @@ func TestValidateSTSRegion(t *testing.T) {
 			region:  "il-central-1",
 			wantErr: false,
 		},
+		// Future regions should be accepted without code changes
+		{
+			name:    "valid future region",
+			region:  "eu-south-3",
+			wantErr: false,
+		},
 		// Invalid cases
 		{
 			name:    "empty region",
