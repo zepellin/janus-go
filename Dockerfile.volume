@@ -22,4 +22,5 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
 
 FROM scratch
 
-COPY --from=builder /out/janus-go /janus-go/janus-go
+COPY --from=builder /out/janus-go /janus-go
+COPY --from=builder /out/janus-go /janus
