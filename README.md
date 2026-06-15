@@ -21,7 +21,7 @@ This project was inspired by [Janus](https://github.com/doitintl/janus), a pytho
 Download appropriate release for your OS and achitecture from the project's release page.
 
 ```bash
-wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.6.0/janus-v0.6.0-linux-amd64 && chmod +x janus-go
+wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.6.6/janus-v0.6.6-linux-amd64 && chmod +x janus-go
 ```
 
 ### Inside of a Kubernetes pod
@@ -40,7 +40,7 @@ spec:
      image: alpine:3
      command: [sh, -c]
      args:
-       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.6.0/janus-v0.6.0-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
+       - wget -qO janus-go https://github.com/zepellin/janus-go/releases/download/v0.6.6/janus-v0.6.6-linux-amd64 && chmod +x janus-go && mv janus-go /janus-go/
      volumeMounts:
        - mountPath: /janus-go
          name: janus-go
@@ -57,7 +57,7 @@ spec:
      emptyDir: {}
 ```
 
-Alternatively, use the published OCI image as a Kubernetes image volume (where supported by your Kubernetes version/configuration):
+Alternatively, use the published OCI image as a Kubernetes image volume (requires Kubernetes 1.31+ with the `ImageVolume` feature gate enabled):
 
 ```yaml
 apiVersion: v1
@@ -76,13 +76,23 @@ spec:
   volumes:
     - name: janus-go
       image:
-        reference: ghcr.io/zepellin/janus-go-volume:v0.6.0
+        reference: ghcr.io/zepellin/janus-go-volume:v0.6.6
         pullPolicy: IfNotPresent
+```
+
+The OCI image contains two files at root — `/janus-go` and `/janus` (both are the same binary). Use `subPath` to pick whichever name you prefer:
+
+```yaml
+      volumeMounts:
+        - mountPath: /usr/local/bin/janus-go
+          name: janus-go
+          subPath: janus-go   # or "janus"
+          readOnly: true
 ```
 
 ### Image naming and tags
 
-The Kubernetes image-volume artifact is published to GitHub Container Registry as:
+The OCI volume image is built by the [publish-volume-image](.github/workflows/publish-volume-image.yaml) workflow and published to GitHub Container Registry as:
 
 ```text
 ghcr.io/<owner>/<repo>-volume
@@ -94,16 +104,18 @@ For this repository, that resolves to:
 ghcr.io/zepellin/janus-go-volume
 ```
 
+The image is built for `linux/amd64` and `linux/arm64`.
+
 Tag behavior:
 
-- Release tags: `vX.Y.Z` (for example `v0.6.0`)
+- Release tags: `vX.Y.Z` (for example `v0.6.6`)
 - Commit tags: `sha-<git-sha>`
 - `latest`: published from the default branch
 
 Examples:
 
 ```text
-ghcr.io/zepellin/janus-go-volume:v0.6.0
+ghcr.io/zepellin/janus-go-volume:v0.6.6
 ghcr.io/zepellin/janus-go-volume:sha-abc1234def56
 ghcr.io/zepellin/janus-go-volume:latest
 ```
