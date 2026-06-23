@@ -9,8 +9,9 @@
   ],
   "timezone": "Europe/Madrid",
   "schedule": [
-    "* 20-23 * * *"
+    "* 20-23 * * 0"
   ],
+  "minimumReleaseAge": "7 days",
   "rebaseWhen": "behind-base-branch",
   "separateMajorMinor": true,
   "separateMinorPatch": true,
