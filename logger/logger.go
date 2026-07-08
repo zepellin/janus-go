@@ -12,7 +12,9 @@ var Logger *slog.Logger
 // InitLogger initializes the global logger with the specified level
 func InitLogger(level string) {
 	logLevel := parseLogLevel(level)
-	Logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	// Logs must go to stderr: stdout is reserved for the credential_process
+	// JSON payload that the AWS CLI/SDK parses.
+	Logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 		Level: logLevel,
 	}))
 }
