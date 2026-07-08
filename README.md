@@ -135,6 +135,13 @@ AWS clients such as AWS CLI or [AWS Terraform provider](https://registry.terrafo
 aws --profile my-aws-account ec2 describe-instances
 ```
 
+### Environment variables
+
+| Variable | Description |
+| --- | --- |
+| `AWS_SESSION_IDENTIFIER` | STS role session name to use. Takes precedence over the value generated from GCP metadata (project ID + hostname), but not over the `-sessionid` flag. Must be 2-64 characters of `A-Za-z0-9+=,.@_-`. |
+| `IDENTITY_TOKEN_AUDIENCE` | Audience of the requested Google identity token (defaults to `gcp`). Must match the audience configured in the AWS IAM role trust policy. Applies to GCE instance and service account tokens; the gcloud authorized user flow always uses the Google Cloud SDK audience. |
+
 ## Contributing
 
 To contribute to Janus-go, follow these steps:

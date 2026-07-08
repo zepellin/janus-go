@@ -6,12 +6,17 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"janus/aws"
 	"janus/gcp"
 	"janus/logger"
 	"janus/types"
 )
+
+// operationTimeout bounds the whole credential retrieval so a hung token
+// endpoint or STS call doesn't hang the calling AWS CLI/SDK indefinitely
+const operationTimeout = 30 * time.Second
 
 func main() {
 	showVersion := flag.Bool("version", false, "Print version information")
@@ -49,13 +54,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), operationTimeout)
+	defer cancel()
 
-	gcpMetadataClient := gcp.NewMetadataClient(ctx)
+	gcpMetadataClient := gcp.NewMetadataClient()
 
 	sessionIdentifier, err := gcp.GetSessionIdentifier(ctx, *sessionId, gcpMetadataClient)
 	if err != nil {
 		logger.Logger.Error(fmt.Errorf("failed to get session identifier: %w", err).Error())
+		os.Exit(1)
+	}
+	if err := types.ValidateSessionIdentifier(sessionIdentifier); err != nil {
+		logger.Logger.Error(err.Error())
 		os.Exit(1)
 	}
 

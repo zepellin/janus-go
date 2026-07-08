@@ -1,6 +1,7 @@
 package types
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -191,10 +192,33 @@ func TestValidateSTSRegion(t *testing.T) {
 			region:  "il-central-1",
 			wantErr: false,
 		},
-		// Future regions should be accepted without code changes
+		// Regions in areas launched after the old allowlist was written,
+		// and future regions, should be accepted without code changes
+		{
+			name:    "valid mx-central-1",
+			region:  "mx-central-1",
+			wantErr: false,
+		},
+		{
+			name:    "valid ap-east-2",
+			region:  "ap-east-2",
+			wantErr: false,
+		},
 		{
 			name:    "valid future region",
 			region:  "eu-south-3",
+			wantErr: false,
+		},
+		// Region-shaped strings that don't exist pass the shape check;
+		// STS rejects them at request time
+		{
+			name:    "region-shaped but non-existent",
+			region:  "us-east-99",
+			wantErr: false,
+		},
+		{
+			name:    "region-shaped typo",
+			region:  "us-eats-1",
 			wantErr: false,
 		},
 		// Invalid cases
@@ -209,16 +233,6 @@ func TestValidateSTSRegion(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "non-existent region",
-			region:  "us-east-99",
-			wantErr: true,
-		},
-		{
-			name:    "typo in region",
-			region:  "us-eats-1",
-			wantErr: true,
-		},
-		{
 			name:    "random string",
 			region:  "not-a-region",
 			wantErr: true,
@@ -228,6 +242,11 @@ func TestValidateSTSRegion(t *testing.T) {
 			region:  "us-standard",
 			wantErr: true,
 		},
+		{
+			name:    "missing number suffix",
+			region:  "us-east",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -235,6 +254,64 @@ func TestValidateSTSRegion(t *testing.T) {
 			err := ValidateSTSRegion(tt.region)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateSTSRegion() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateSessionIdentifier(t *testing.T) {
+	tests := []struct {
+		name    string
+		id      string
+		wantErr bool
+	}{
+		{
+			name:    "valid simple identifier",
+			id:      "my-session",
+			wantErr: false,
+		},
+		{
+			name:    "valid project-hostname identifier",
+			id:      "my-project-instance-1.c.my-project.internal",
+			wantErr: false,
+		},
+		{
+			name:    "valid with allowed special characters",
+			id:      "user@example.com,extra=1+2",
+			wantErr: false,
+		},
+		{
+			name:    "valid at maximum length",
+			id:      strings.Repeat("a", 64),
+			wantErr: false,
+		},
+		{
+			name:    "empty identifier",
+			id:      "",
+			wantErr: true,
+		},
+		{
+			name:    "too short",
+			id:      "a",
+			wantErr: true,
+		},
+		{
+			name:    "too long",
+			id:      strings.Repeat("a", 65),
+			wantErr: true,
+		},
+		{
+			name:    "invalid characters",
+			id:      "my session!",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateSessionIdentifier(tt.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateSessionIdentifier() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
