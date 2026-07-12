@@ -22,11 +22,25 @@ import (
 )
 
 const (
-	defaultAudience        = types.GCPTokenAudience
-	googleCloudSDKAudience = "32555940559.apps.googleusercontent.com"
-	googleTokenInfoURL     = "https://oauth2.googleapis.com/token"
-	metadataClientTimeout  = 3 * time.Second // Timeout for GCP metadata client requests
+	defaultAudience          = types.GCPTokenAudience
+	googleCloudSDKAudience   = "32555940559.apps.googleusercontent.com"
+	googleTokenEndpoint      = "https://oauth2.googleapis.com/token"
+	metadataClientTimeout    = 3 * time.Second // Timeout for GCP metadata client requests
+	identityTokenAudienceEnv = "IDENTITY_TOKEN_AUDIENCE"
+	// Maximum length of an AWS STS RoleSessionName
+	sessionIdentifierMaxLen = 64
 )
+
+// resolveAudience returns the identity token audience, honoring the
+// IDENTITY_TOKEN_AUDIENCE environment variable if set. Note the audience only
+// applies to GCE instance and service account tokens; the authorized_user flow
+// always uses the Google Cloud SDK audience.
+func resolveAudience() string {
+	if audience := os.Getenv(identityTokenAudienceEnv); audience != "" {
+		return audience
+	}
+	return defaultAudience
+}
 
 // credentialsFile represents the structure of the credentials JSON file
 type credentialsFile struct {
@@ -40,71 +54,25 @@ type credentialsFile struct {
 	ClientEmail  string `json:"client_email"`
 }
 
-// contextAwareMetadataClient wraps the standard metadata.Client with better context handling
-type contextAwareMetadataClient struct {
+// MetadataClient wraps the standard metadata.Client
+type MetadataClient struct {
 	*metadata.Client
-	ctx context.Context
 }
 
-// NewMetadataClient creates a new GCP metadata client with context
-func NewMetadataClient(ctx context.Context) *contextAwareMetadataClient {
+// NewMetadataClient creates a new GCP metadata client
+func NewMetadataClient() *MetadataClient {
 	baseClient := metadata.NewClient(&http.Client{
-		Transport: &contextTransport{
-			base: http.DefaultTransport,
-			ctx:  ctx,
-		},
 		Timeout: metadataClientTimeout,
 	})
 
-	return &contextAwareMetadataClient{
+	return &MetadataClient{
 		Client: baseClient,
-		ctx:    ctx,
 	}
-}
-
-// ProjectIDWithContext gets the project ID with context awareness
-func (c *contextAwareMetadataClient) ProjectIDWithContext(ctx context.Context) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	return c.Client.ProjectIDWithContext(ctx)
-}
-
-// HostnameWithContext gets the hostname with context awareness
-func (c *contextAwareMetadataClient) HostnameWithContext(ctx context.Context) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	return c.Client.HostnameWithContext(ctx)
-}
-
-type contextTransport struct {
-	base http.RoundTripper
-	ctx  context.Context
-}
-
-func (t *contextTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Check context state before making the request
-	select {
-	case <-t.ctx.Done():
-		return nil, t.ctx.Err()
-	default:
-		// Context is still valid, proceed with the request
-	}
-
-	// Create a new request with our context
-	req = req.WithContext(t.ctx)
-	return t.base.RoundTrip(req)
 }
 
 // GetSessionIdentifier retrieves session identifier from command line flag, environment variable,
 // or generates it from GCP metadata (in that order of precedence)
-func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadataClient *contextAwareMetadataClient) (string, error) {
-	// First check context state
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-
+func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadataClient *MetadataClient) (string, error) {
 	// Check if provided via command line flag
 	if sessionIdFlag != "" {
 		return sessionIdFlag, nil
@@ -118,19 +86,15 @@ func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadata
 	// Try creating it from GCP metadata
 	logger.Logger.Debug("Attempting to create session identifier from GCP metadata")
 
-	// Check context again before making metadata requests
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-
 	sessionId, err := CreateSessionIdentifier(ctx, gcpMetadataClient)
 	if err == nil {
 		return sessionId, nil
 	}
 
-	// Check context before falling back
-	if err := ctx.Err(); err != nil {
-		return "", err
+	// Don't fall back to the local hostname when the metadata lookup failed
+	// because the context was cancelled or timed out
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return "", ctxErr
 	}
 
 	// Fall back to local hostname if GCP metadata fails
@@ -147,7 +111,7 @@ func GetSessionIdentifier(ctx context.Context, sessionIdFlag string, gcpMetadata
 
 // CreateSessionIdentifier constructs AWS session identifier from GCP metadata information.
 // This implementation uses concatenation of GCP project ID and machine hostname.
-func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient) (string, error) {
+func CreateSessionIdentifier(ctx context.Context, c *MetadataClient) (string, error) {
 	projectID, err := c.ProjectIDWithContext(ctx)
 	if err != nil {
 		return "", fmt.Errorf("couldn't fetch ProjectID from GCP metadata server: %w", err)
@@ -158,12 +122,16 @@ func CreateSessionIdentifier(ctx context.Context, c *contextAwareMetadataClient)
 		return "", fmt.Errorf("couldn't fetch Hostname from GCP metadata server: %w", err)
 	}
 
-	return fmt.Sprintf("%s-%s", projectID, hostname)[:32], nil
+	s := fmt.Sprintf("%s-%s", projectID, hostname)
+	if len(s) > sessionIdentifierMaxLen {
+		s = s[:sessionIdentifierMaxLen]
+	}
+	return s, nil
 }
 
 // printIdentityTokenIfEnabled prints the identity token if enabled in config and log level is DEBUG
 func printIdentityTokenIfEnabled(config types.Config, tokenSource oauth2.TokenSource) {
-	if config.PrintIdToken && config.LogLevel == "DEBUG" {
+	if config.PrintIdToken && strings.EqualFold(config.LogLevel, "DEBUG") {
 		if token, err := tokenSource.Token(); err != nil {
 			logger.Logger.Error(fmt.Errorf("failed to get identity token for printing: %w", err).Error())
 		} else {
@@ -219,10 +187,7 @@ func (obj CustomIdentityTokenRetriever) GetIdentityToken() ([]byte, error) {
 
 // fetchInstanceIdentityToken retrieves an identity token from GCE metadata
 func fetchInstanceIdentityToken(ctx context.Context) (string, error) {
-	audience := os.Getenv("IDENTITY_TOKEN_AUDIENCE")
-	if audience == "" {
-		audience = defaultAudience
-	}
+	audience := resolveAudience()
 
 	// Use the built-in Google SDK function to get an identity token
 	idTokenSource, err := idtoken.NewTokenSource(ctx, audience)
@@ -241,14 +206,15 @@ func fetchInstanceIdentityToken(ctx context.Context) (string, error) {
 
 // generateIdentityToken generates an identity token from local credentials
 func generateIdentityToken(ctx context.Context) (string, error) {
-	audience := os.Getenv("IDENTITY_TOKEN_AUDIENCE")
-	if audience == "" {
-		audience = defaultAudience
-	}
+	audience := resolveAudience()
 
 	creds, err := google.FindDefaultCredentials(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get default credentials: %w", err)
+	}
+
+	if len(creds.JSON) == 0 {
+		return "", fmt.Errorf("application default credentials contain no key file; set GOOGLE_APPLICATION_CREDENTIALS to a service account or authorized user key file")
 	}
 
 	// Parse the credentials to determine the type
@@ -267,7 +233,7 @@ func generateIdentityToken(ctx context.Context) (string, error) {
 		data.Set("grant_type", "refresh_token")
 		data.Set("audience", googleCloudSDKAudience)
 
-		req, err := http.NewRequestWithContext(ctx, "POST", googleTokenInfoURL, strings.NewReader(data.Encode()))
+		req, err := http.NewRequestWithContext(ctx, "POST", googleTokenEndpoint, strings.NewReader(data.Encode()))
 		if err != nil {
 			return "", fmt.Errorf("failed to create token request: %w", err)
 		}

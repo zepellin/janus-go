@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -97,14 +98,14 @@ func TestCreateSessionIdentifier(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	client := gcp.NewMetadataClient(ctx)
+	client := gcp.NewMetadataClient()
 
 	sessionID, err := gcp.CreateSessionIdentifier(ctx, client)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	expectedSessionID := fmt.Sprintf("%s-%s", gcpProjectID, gceInstanceHostname)[:32]
+	expectedSessionID := fmt.Sprintf("%s-%s", gcpProjectID, gceInstanceHostname)
 	if sessionID != expectedSessionID {
 		t.Errorf("Unexpected session ID: got %s, want %s", sessionID, expectedSessionID)
 	}
@@ -115,13 +116,13 @@ func TestGCEMetadataHostname(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	client := gcp.NewMetadataClient(ctx)
+	client := gcp.NewMetadataClient()
 
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
 	}
 
-	metadataHostname, err := client.Hostname()
+	metadataHostname, err := client.HostnameWithContext(ctx)
 	if err != nil {
 		t.Errorf("Failed to fetch hostname from metadata server: %v", err)
 	}
@@ -134,13 +135,13 @@ func TestGCEMetadataProjectID(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	client := gcp.NewMetadataClient(ctx)
+	client := gcp.NewMetadataClient()
 
 	if client == nil {
 		t.Errorf("Expected non-nil metadata client, got nil")
 	}
 
-	metadataProjectID, err := client.ProjectID()
+	metadataProjectID, err := client.ProjectIDWithContext(ctx)
 	if err != nil {
 		t.Errorf("Failed to fetch project ID from metadata server: %v", err)
 	}
@@ -188,20 +189,17 @@ func TestContextCancellation(t *testing.T) {
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Create a GCP metadata client with the cancellable context
-	client := gcp.NewMetadataClient(ctx)
+	client := gcp.NewMetadataClient()
 
 	// Cancel the context before making the request
 	cancel()
 
-	// Sleep briefly to ensure cancellation propagates
-	time.Sleep(10 * time.Millisecond)
-
-	// Try to get ProjectID directly first
-	_, err := client.ProjectIDWithContext(ctx)
+	// Try to get Hostname directly first (ProjectID is cached at package level
+	// in the metadata library, so it wouldn't exercise context propagation)
+	_, err := client.HostnameWithContext(ctx)
 	if err == nil {
-		t.Error("Expected error when getting ProjectID with cancelled context, got nil")
-	} else if ctx.Err() != err {
+		t.Error("Expected error when getting Hostname with cancelled context, got nil")
+	} else if !errors.Is(err, context.Canceled) {
 		t.Errorf("Expected context.Canceled error, got: %v", err)
 	}
 
@@ -209,7 +207,7 @@ func TestContextCancellation(t *testing.T) {
 	_, err = gcp.GetSessionIdentifier(ctx, "", client)
 	if err == nil {
 		t.Error("Expected error when getting session identifier with cancelled context, got nil")
-	} else if ctx.Err() != err {
+	} else if !errors.Is(err, context.Canceled) {
 		t.Errorf("Expected context.Canceled error, got: %v", err)
 	}
 }
@@ -223,17 +221,17 @@ func TestContextTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
 
-	// Create a GCP metadata client with the timeout context
-	client := gcp.NewMetadataClient(ctx)
+	client := gcp.NewMetadataClient()
 
 	// Sleep to ensure timeout occurs
 	time.Sleep(10 * time.Millisecond)
 
-	// Try to get ProjectID directly first
-	_, err := client.ProjectIDWithContext(ctx)
+	// Try to get Hostname directly first (ProjectID is cached at package level
+	// in the metadata library, so it wouldn't exercise context propagation)
+	_, err := client.HostnameWithContext(ctx)
 	if err == nil {
-		t.Error("Expected error when getting ProjectID with timed out context, got nil")
-	} else if ctx.Err() != err {
+		t.Error("Expected error when getting Hostname with timed out context, got nil")
+	} else if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("Expected context.DeadlineExceeded error, got: %v", err)
 	}
 
@@ -241,7 +239,7 @@ func TestContextTimeout(t *testing.T) {
 	_, err = gcp.GetSessionIdentifier(ctx, "", client)
 	if err == nil {
 		t.Error("Expected error when getting session identifier with timed out context, got nil")
-	} else if ctx.Err() != err {
+	} else if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("Expected context.DeadlineExceeded error, got: %v", err)
 	}
 }

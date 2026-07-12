@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.23
+# syntax=docker/dockerfile:1.25
 
-FROM --platform=$BUILDPLATFORM golang:1.26.2-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.4-alpine AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -22,4 +22,5 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
 
 FROM scratch
 
-COPY --from=builder /out/janus-go /janus-go/janus-go
+COPY --from=builder /out/janus-go /janus-go
+COPY --from=builder /out/janus-go /janus
