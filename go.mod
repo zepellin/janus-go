@@ -5,7 +5,7 @@ go 1.25.8
 toolchain go1.27.1
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/compute/metadata v0.9.1
 	github.com/aws/aws-sdk-go-v2 v1.44.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.40
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.39
