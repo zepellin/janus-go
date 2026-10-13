@@ -6,10 +6,9 @@ on:
     paths-ignore:
       - ".github/**"
       - "**.md"
+  # No paths-ignore here: build is a required check, so it has to report on every PR
   pull_request:
     branches: ["main"]
-    paths-ignore:
-      - "**.md"
 
 permissions:
   contents: read
